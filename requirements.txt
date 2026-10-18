@@ -1,0 +1,10 @@
+streamlit
+pandas
+easyocr
+python-docx
+rapidfuzz
+openpyxl
+pytz
+pillow
+numpy
+torch
