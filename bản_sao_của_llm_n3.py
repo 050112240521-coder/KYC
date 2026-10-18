@@ -7,7 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1WsTsgGZfaBT_3hE_cxRem10n1GUMcCCS
 """
 
-!pip install -q "gradio>=4.0" easyocr python-docx rapidfuzz pandas openpyxl pytz
+#!pip install -q "gradio>=4.0" easyocr python-docx rapidfuzz pandas openpyxl pytz
 
 import os
 import re
