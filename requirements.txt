@@ -8,3 +8,4 @@ pytz
 pillow
 numpy
 torch
+gradio
