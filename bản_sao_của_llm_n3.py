@@ -32,7 +32,7 @@ from docx import Document
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 import gradio as gr
-from IPython.display import display, HTML
+#from IPython.display import display, HTML
 
 warnings.filterwarnings("ignore")
 
