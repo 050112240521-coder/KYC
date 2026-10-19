@@ -1544,7 +1544,6 @@ with gr.Blocks(title="IDP - Xử lý tài liệu thông minh & KYC Summary") as 
             html_out_p4 = gr.HTML(value="<p><i>Bấm nút 'Tự động tổng hợp KYC Summary' để hiển thị báo cáo.</i></p>")
 
            import streamlit as st
-
 # Cấu hình giao diện web Streamlit
 st.set_page_config(page_title="Document AI - Intelligent KYC", layout="wide", page_icon="🆔")
 
