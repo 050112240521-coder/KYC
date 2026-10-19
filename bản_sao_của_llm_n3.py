@@ -1655,13 +1655,11 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
-    /* Nền tổng thể trang bên phải: Sáng sủa, dễ nhìn */
     .stApp {
         background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
         color: #0f172a !important;
     }
 
-    /* Sidebar trái: Đỏ đô đậm sang trọng */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #4c0519 0%, #2e0813 60%, #0f172a 100%) !important;
         border-right: 1px solid rgba(225, 29, 72, 0.25) !important;
@@ -1685,7 +1683,6 @@ st.markdown("""
     .brand-text-main { color: #ffffff; font-size: 17px; font-weight: 700; }
     .brand-sub-teal { font-size: 12px; color: #fb7185; font-weight: 500; }
     
-    /* Khung thẻ nội dung (Card trắng, chữ tối màu cực kỳ rõ ràng) */
     .top-header, .content-card {
         background: #ffffff !important; border-radius: 16px; padding: 28px;
         border: 1px solid #cbd5e1; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px;
@@ -1697,7 +1694,6 @@ st.markdown("""
     .page-title-text { font-size: 19px; font-weight: 700; color: #0f172a !important; }
     .breadcrumb { font-size: 12px; color: #64748b; font-weight: 500; }
 
-    /* Nút bấm đỏ đô */
     .stButton > button {
         background: linear-gradient(135deg, #be123c 0%, #9f1239 100%) !important;
         color: #ffffff !important; font-weight: 600 !important; border-radius: 10px !important; border: none !important;
@@ -1792,7 +1788,35 @@ elif "Trích xuất tài liệu" in menu_choice:
         st.session_state["res_summ"] = summ
         st.success("✅ Đã phân tích hồ sơ thành công! Hãy chuyển sang trang 'Báo cáo KYC & Cờ rủi ro' để xem chi tiết.")
 
-# --- TAB 2 & 3: BÁO CÁO KYC & CỜ RỦI RO (ĐÃ FIX HIỂN THỊ TRỌN VẸN) ---
+# --- TAB 2 & 3: BÁO CÁO KYC & CỜ RỦI RO ---
 elif "Báo cáo KYC" in menu_choice:
     st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("📋 Báo cáo Đánh giá Rủi ro &
+    st.subheader("📋 Báo cáo Đánh giá Rủi ro & Xác minh Hồ sơ")
+    
+    if "res_summ" in st.session_state:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.markdown("### 🔍 Kiểm tra tính toàn vẹn & Đối chiếu")
+            st.info(st.session_state["res_comp"])
+            st.warning(st.session_state["res_mismatch"])
+        with col_b:
+            st.markdown("### 🎯 Độ tin cậy & Cờ rủi ro")
+            st.metric(label="Overall Confidence Score", value=st.session_state["res_conf"])
+            st.error(st.session_state["res_attn"])
+        
+        st.markdown("---")
+        st.markdown("### 📊 Tổng hợp KYC Summary")
+        st.markdown(st.session_state["res_summ"])
+    else:
+        st.info("ℹ️ Chưa có dữ liệu phân tích. Vui lòng vào trang **Trích xuất tài liệu (OCR)** để tải ảnh và bấm phân tích trước.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- TAB 4: HỒ SƠ KHÁCH HÀNG ---
+elif "Hồ sơ khách hàng" in menu_choice:
+    st.markdown('<div class="content-card">', unsafe_allow_html=True)
+    st.subheader("👥 Danh sách Hồ sơ Khách hàng")
+    if "res_summ" in st.session_state:
+        st.write("Trạng thái hồ sơ gần nhất: **Đã xử lý qua hệ thống Document AI**")
+    else:
+        st.caption("Chưa có hồ sơ nào được ghi nhận trong phiên làm việc.")
+    st.markdown('</div>', unsafe_allow_html=True)
