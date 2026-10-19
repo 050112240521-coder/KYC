@@ -1463,7 +1463,7 @@ import tempfile
 import os
 
 # ====================================================================
-# STREAMLIT UI: CRIMSON RED, DEEP NAVY & CLEAN WHITE FINTECH STYLE
+# STREAMLIT UI: FINTECH DASHBOARD WITH SESSION STATE PERSISTENCE
 # ====================================================================
 
 st.set_page_config(
@@ -1482,7 +1482,6 @@ st.markdown("""
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* 1. NỀN TOÀN BỘ WEB: XANH THAN (DEEP NAVY) SÂU TINH TẾ */
     .stApp {
         background: radial-gradient(circle at 10% 20%, rgba(159, 18, 57, 0.18) 0%, transparent 45%),
                     radial-gradient(circle at 90% 80%, rgba(15, 23, 42, 0.6) 0%, transparent 50%),
@@ -1490,7 +1489,6 @@ st.markdown("""
         color: #f8fafc !important;
     }
 
-    /* 2. SIDEBAR BÊN TRÁI: ĐỎ ĐÔ (CRIMSON RED) PHỐI XANH THAN */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #4c0519 0%, #2e0813 60%, #0f172a 100%) !important;
         border-right: 1px solid rgba(225, 29, 72, 0.25) !important;
@@ -1500,7 +1498,6 @@ st.markdown("""
         padding-top: 20px;
     }
 
-    /* Logo Brand KYC */
     .sidebar-brand {
         display: flex;
         align-items: center;
@@ -1530,7 +1527,6 @@ st.markdown("""
         font-weight: 500;
     }
 
-    /* Custom Radio Menu Sidebar */
     [data-testid="stSidebar"] .stRadio > label {
         color: #cbd5e1 !important;
         font-size: 11px !important;
@@ -1558,7 +1554,6 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* 3. TOP BAR VÀ KHUNG LÀM VIỆC BÊN PHẢI: TRẮNG SÁNG (CLEAN WHITE) */
     .top-header {
         display: flex;
         justify-content: space-between;
@@ -1581,7 +1576,6 @@ st.markdown("""
         color: #0f172a !important;
     }
 
-    /* 4. KHUNG THẺ NỘI DUNG (CARD TRẮNG) */
     .content-card {
         background: #ffffff !important;
         border: 1px solid #e2e8f0;
@@ -1596,7 +1590,6 @@ st.markdown("""
         color: #0f172a;
     }
 
-    /* Nút bấm chính: Màu Đỏ Đô sang trọng với chữ Trắng */
     .stButton > button {
         background: linear-gradient(135deg, #be123c 0%, #9f1239 100%) !important;
         color: #ffffff !important;
@@ -1613,7 +1606,6 @@ st.markdown("""
         transform: translateY(-1px) !important;
     }
 
-    /* Ô Upload File */
     [data-testid="stFileUploadDropzone"] {
         background: #f8fafc !important;
         border: 1.5px dashed #cbd5e1 !important;
@@ -1625,7 +1617,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Khởi tạo danh sách menu và trạng thái chuyển trang an toàn
+# Khởi tạo danh sách menu và trạng thái chuyển trang
 menu_options = [
     "🎛️ Tổng quan Dashboard",
     "📄 Trích xuất tài liệu (OCR)",
@@ -1649,7 +1641,6 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    # Xác định chỉ số index hiện tại dựa trên session state
     current_index = menu_options.index(st.session_state["current_page"]) if st.session_state["current_page"] in menu_options else 0
 
     menu_choice = st.radio(
@@ -1658,7 +1649,6 @@ with st.sidebar:
         index=current_index
     )
     
-    # Cập nhật lại trang hiện tại khi người dùng bấm chọn trên sidebar
     st.session_state["current_page"] = menu_choice
 
     st.markdown("---")
@@ -1696,8 +1686,13 @@ st.markdown(f"""
 # --- PHẦN 0: TỔNG QUAN DASHBOARD ---
 if "Tổng quan Dashboard" in menu_choice:
     st.markdown('<div class="content-card" style="text-align: center; padding: 35px 20px;">', unsafe_allow_html=True)
-    st.markdown("<h3 style='color: #0f172a; font-weight: 700; margin-bottom: 8px;'>Chưa có hồ sơ nào được xử lý trong phiên làm việc</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #64748b; font-size: 13.5px; max-width: 680px; margin: 0 auto 24px auto;'>Hệ thống tuân thủ nguyên tắc không tạo số liệu giả. Hãy tải tài liệu thật để trích xuất OCR, đối chiếu chéo và sinh báo cáo KYC, hoặc tải bộ hồ sơ thực nghiệm để kiểm thử.</p>", unsafe_allow_html=True)
+    
+    if "ocr_df" in st.session_state and not st.session_state["ocr_df"].empty:
+        st.markdown("<h3 style='color: #0f172a; font-weight: 700; margin-bottom: 8px;'>🟢 Đã có hồ sơ được trích xuất trong phiên làm việc</h3>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #64748b; font-size: 13.5px; max-width: 680px; margin: 0 auto 24px auto;'>Dữ liệu đã sẵn sàng. Bạn có thể chuyển sang trang Đối chiếu chéo hoặc Báo cáo KYC để tiếp tục thẩm định.</p>", unsafe_allow_html=True)
+    else:
+        st.markdown("<h3 style='color: #0f172a; font-weight: 700; margin-bottom: 8px;'>Chưa có hồ sơ nào được xử lý trong phiên làm việc</h3>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #64748b; font-size: 13.5px; max-width: 680px; margin: 0 auto 24px auto;'>Hệ thống tuân thủ nguyên tắc không tạo số liệu giả. Hãy tải tài liệu thật để trích xuất OCR, đối chiếu chéo và sinh báo cáo KYC, hoặc tải bộ hồ sơ thực nghiệm để kiểm thử.</p>", unsafe_allow_html=True)
     
     col_act1, col_act2 = st.columns(2)
     with col_act1:
@@ -1784,19 +1779,28 @@ elif "Trích xuất tài liệu" in menu_choice:
                 
                 sum_html, det_html, df, csv_path, dbg = ui_process(temp_files)
                 
-                sum_out_area.markdown(sum_html, unsafe_allow_html=True)
-                detail_out_area.markdown(det_html, unsafe_allow_html=True)
-                df_out_area.dataframe(df, use_container_width=True)
-                dbg_out_area.code(dbg)
-                
-                if os.path.exists(csv_path):
-                    with open(csv_path, "rb") as f:
-                        st.download_button(
-                            label="⬇️ Tải file CSV trích xuất", 
-                            data=f, 
-                            file_name="ket_qua_idp.csv", 
-                            mime="text/csv"
-                        )
+                # Lưu vào Session State để không bị mất khi chuyển tab
+                st.session_state["ocr_sum_html"] = sum_html
+                st.session_state["ocr_det_html"] = det_html
+                st.session_state["ocr_df"] = df
+                st.session_state["ocr_csv_path"] = csv_path
+                st.session_state["ocr_dbg"] = dbg
+
+    # Hiển thị kết quả đã lưu trong Session State (nếu có)
+    if "ocr_sum_html" in st.session_state:
+        sum_out_area.markdown(st.session_state["ocr_sum_html"], unsafe_allow_html=True)
+        detail_out_area.markdown(st.session_state["ocr_det_html"], unsafe_allow_html=True)
+        df_out_area.dataframe(st.session_state["ocr_df"], use_container_width=True)
+        dbg_out_area.code(st.session_state["ocr_dbg"])
+        
+        if os.path.exists(st.session_state.get("ocr_csv_path", "")):
+            with open(st.session_state["ocr_csv_path"], "rb") as f:
+                st.download_button(
+                    label="⬇️ Tải file CSV trích xuất", 
+                    data=f, 
+                    file_name="ket_qua_idp.csv", 
+                    mime="text/csv"
+                )
 
 
 # --- PHẦN 2: ĐỐI CHIẾU HỒ SƠ (CROSS-CHECK) ---
@@ -1841,22 +1845,26 @@ elif "Đối chiếu chéo" in menu_choice:
                     temp_files_cc.append(temp_path)
             
             res = ui_crosscheck(temp_files_cc if temp_files_cc else None, mode_cc, None)
+            st.session_state["cc_res"] = res
+
+    # Hiển thị kết quả đối chiếu đã lưu trong Session State (nếu có)
+    if "cc_res" in st.session_state:
+        res = st.session_state["cc_res"]
+        if isinstance(res, tuple):
+            cc_html, cc_df, xlsx_path = res[0], res[1], res[2]
+            cc_html_area.markdown(cc_html, unsafe_allow_html=True)
+            cc_df_area.dataframe(cc_df, use_container_width=True)
             
-            if isinstance(res, tuple):
-                cc_html, cc_df, xlsx_path = res[0], res[1], res[2]
-                cc_html_area.markdown(cc_html, unsafe_allow_html=True)
-                cc_df_area.dataframe(cc_df, use_container_width=True)
-                
-                if xlsx_path and os.path.exists(xlsx_path):
-                    with open(xlsx_path, "rb") as f:
-                        st.download_button(
-                            label="⬇️ Tải báo cáo Excel đối chiếu", 
-                            data=f, 
-                            file_name="doi_chieu_ho_so.xlsx", 
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-            else:
-                cc_html_area.markdown(res, unsafe_allow_html=True)
+            if xlsx_path and os.path.exists(xlsx_path):
+                with open(xlsx_path, "rb") as f:
+                    st.download_button(
+                        label="⬇️ Tải báo cáo Excel đối chiếu", 
+                        data=f, 
+                        file_name="doi_chieu_ho_so.xlsx", 
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+        else:
+            cc_html_area.markdown(res, unsafe_allow_html=True)
 
 
 # --- PHẦN 3: BÁO CÁO KYC & CỜ RỦI RO ---
@@ -1884,12 +1892,19 @@ elif "Báo cáo KYC" in menu_choice:
 
     if btn_p4:
         with st.spinner("⚡ Đang tổng hợp báo cáo rủi ro..."):
-            html_out_p4_area.success("✅ Đã khởi tạo thành công Báo cáo KYC Summary!")
+            st.session_state["kyc_report_done"] = True
+
+    if st.session_state.get("kyc_report_done", False):
+        html_out_p4_area.success("✅ Đã khởi tạo thành công Báo cáo KYC Summary!")
 
 
 # --- PHẦN 4: HỒ SƠ KHÁCH HÀNG ---
 elif "Hồ sơ khách hàng" in menu_choice:
     st.markdown('<div class="content-card">', unsafe_allow_html=True)
     st.subheader("👥 Danh sách Hồ sơ Khách hàng đã xử lý")
-    st.caption("Chưa có hồ sơ khách hàng nào trong phiên làm việc hiện tại.")
+    
+    if "ocr_df" in st.session_state and not st.session_state["ocr_df"].empty:
+        st.dataframe(st.session_state["ocr_df"], use_container_width=True)
+    else:
+        st.caption("Chưa có hồ sơ khách hàng nào trong phiên làm việc hiện tại.")
     st.markdown("</div>", unsafe_allow_html=True)
