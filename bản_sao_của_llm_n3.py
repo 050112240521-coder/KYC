@@ -1459,11 +1459,188 @@ def ui_crosscheck(files, group_mode, s_ext, progress=gr.Progress()):
     return crosscheck_to_html(df_cross, df_sum), df_cross, xlsx_path, df_extract, df_cross, df_sum
 import streamlit as st
 import pandas as pd
+import numpy as np
+import cv2
+import re
 import tempfile
 import os
 
 # ====================================================================
-# STREAMLIT UI: FINTECH DASHBOARD WITH SESSION STATE PERSISTENCE
+# 1. CÁC HÀM XỬ LÝ LÕI (PIPELINE LOGIC TỪ CODE GỐC CỦA NHÓM)
+# ====================================================================
+
+def calculate_blur_score(image_np) -> float:
+    """Đánh giá độ nét của ảnh bằng thuật toán Laplacian"""
+    if image_np is None:
+        return 0.0
+    gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
+    variance = cv2.Laplacian(gray, cv2.CV_64F).var()
+    score = min(variance / 100.0, 1.0)
+    return round(score, 2)
+
+def mock_vision_model() -> dict:
+    """Mô phỏng phân loại và bóc tách dữ liệu từ Vision LLM"""
+    return {
+        "document_type": "CCCD",
+        "raw_fields": {
+            "document_number": {"value": "012345678901", "model_conf": 0.95},
+            "full_name": {"value": "Nguyễn Minh An", "model_conf": 0.98},
+            "date_of_birth": {"value": "1994-08-17", "model_conf": 0.92},
+            "gender": {"value": "Nam", "model_conf": 0.99}
+        }
+    }
+
+def apply_validation_rules(field_name: str, value: str) -> float:
+    """Ràng buộc quy tắc (Validation Rules)"""
+    if field_name == "document_number":
+        return 1.0 if re.match(r"^\d{12}$", value) else 0.2
+    elif field_name == "date_of_birth":
+        return 1.0 if re.match(r"^\d{4}-\d{2}-\d{2}$", value) else 0.5
+    elif field_name == "full_name":
+        return 0.2 if re.search(r"\d", value) else 1.0
+    return 1.0
+
+def calculate_final_confidence(model_conf: float, rule_score: float, blur_score: float) -> float:
+    """Tính điểm tin cậy tổng hợp dựa trên trọng số"""
+    final_score = (model_conf * 0.5) + (rule_score * 0.3) + (blur_score * 0.2)
+    return round(final_score, 2)
+
+def process_document(image):
+    """Hàm Main xử lý luồng từ ảnh sang JSON"""
+    if image is None:
+        return "Lỗi: Chưa tải ảnh", {"error": "Vui lòng tải ảnh tài liệu lên!"}
+
+    blur_score = calculate_blur_score(image)
+    vision_result = mock_vision_model()
+    doc_type = vision_result["document_type"]
+
+    extracted_data = {}
+    for field_name, data in vision_result["raw_fields"].items():
+        rule_score = apply_validation_rules(field_name, data["value"])
+        confidence = calculate_final_confidence(data["model_conf"], rule_score, blur_score)
+
+        extracted_data[field_name] = {
+            "value": data["value"],
+            "confidence_score": confidence,
+            "confidence_percent": f"{confidence * 100:.0f}%"
+        }
+
+    response_payload = {
+        "metadata": {
+            "image_quality_score": blur_score,
+            "status": "success"
+        },
+        "document_type": doc_type,
+        "extracted_data": extracted_data
+    }
+
+    return doc_type, response_payload
+
+def process_kyc_case(cccd_image, kyc_image, address_image):
+    """Xử lý bộ hồ sơ KYC 3 tài liệu"""
+    documents = {
+        "CCCD / Passport": cccd_image,
+        "KYC Form": kyc_image,
+        "Proof of Address": address_image
+    }
+
+    results = {}
+    missing_documents = []
+
+    for doc_name, image in documents.items():
+        if image is None:
+            missing_documents.append(doc_name)
+
+    for doc_name, image in documents.items():
+        if image is not None:
+            doc_type, result = process_document(image)
+            results[doc_name] = {"document_type": doc_type, "result": result}
+        else:
+            results[doc_name] = None
+
+    # Completeness Check
+    if len(missing_documents) == 0:
+        completeness_text = "✅ COMPLETE\n\nĐã nhận đủ 3 loại tài liệu bắt buộc."
+    else:
+        completeness_text = "⚠️ INCOMPLETE\n\nTài liệu thiếu:\n" + "\n".join([f"- {doc}" for doc in missing_documents])
+
+    # Extracted data & Cross-check
+    extracted_documents = []
+    for doc_name, data in results.items():
+        if data is not None:
+            extracted_documents.append(data["result"].get("extracted_data", {}))
+
+    cross_check_fields = ["document_number", "full_name", "date_of_birth", "gender", "document_type"]
+    mismatch_list = []
+    match_count = 0
+    check_count = 0
+
+    if len(extracted_documents) >= 2:
+        for field in cross_check_fields:
+            if field == "document_type":
+                continue
+            values = []
+            for extracted in extracted_documents:
+                if field in extracted:
+                    values.append(str(extracted[field]["value"]).strip().lower())
+            if len(values) >= 2:
+                check_count += 1
+                if len(set(values)) == 1:
+                    match_count += 1
+                else:
+                    mismatch_list.append(field)
+
+    if len(extracted_documents) < 2:
+        mismatch_text = "⚠️ Chưa đủ tài liệu để cross-check."
+    elif len(mismatch_list) == 0:
+        mismatch_text = f"✅ NO MISMATCH DETECTED\n\nKhớp {match_count}/{check_count} trường."
+    else:
+        mismatch_text = "⚠️ MISMATCH DETECTED\n\n" + "\n".join([f"- {f}" for f in mismatch_list])
+
+    # Confidence calculation
+    confidence_values = []
+    for doc_name, data in results.items():
+        if data is not None:
+            extracted_data = data["result"].get("extracted_data", {})
+            for field_name, field_data in extracted_data.items():
+                confidence_values.append(field_data.get("confidence_score", 0))
+
+    overall_confidence = (sum(confidence_values) / len(confidence_values)) if len(confidence_values) > 0 else 0
+    confidence_text = f"{overall_confidence * 100:.0f}%"
+
+    # Attention Flags
+    attention_flags = []
+    if len(missing_documents) > 0:
+        attention_flags.append(f"📄 Thiếu tài liệu: {', '.join(missing_documents)}")
+    if len(mismatch_list) > 0:
+        attention_flags.append(f"🔎 Phát hiện mismatch: {', '.join(mismatch_list)}")
+    if overall_confidence < 0.70:
+        attention_flags.append("🎯 Confidence score thấp → Khuyến nghị nhân viên kiểm tra.")
+    if len(attention_flags) == 0:
+        attention_flags.append("✅ Không phát hiện cờ rủi ro nghiêm trọng.")
+
+    # Workflow Recommendation
+    if len(missing_documents) > 0:
+        workflow_rec = "📩 Request more information"
+    elif len(mismatch_list) > 0 or overall_confidence < 0.70:
+        workflow_rec = "👤 Manual review"
+    else:
+        workflow_rec = "✅ Accept"
+
+    summary = f"""
+### 📋 Hồ sơ: {3 - len(missing_documents)}/3 tài liệu
+- **Completeness:** {"Complete" if len(missing_documents) == 0 else "Incomplete"}
+- **Overall Confidence:** {confidence_text}
+- **Cross-document Check:** {"Mismatch detected" if len(mismatch_list) > 0 else "No mismatch detected"}
+
+### 🤖 Đề xuất xử lý (Workflow): **{workflow_rec}**
+"""
+
+    return completeness_text, mismatch_text, confidence_text, attention_text, summary
+
+
+# ====================================================================
+# 2. GIAO DIỆN STREAMLIT (UI LAYER - NỀN SÁNG, RÕ CHỮ)
 # ====================================================================
 
 st.set_page_config(
@@ -1473,151 +1650,62 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS chuẩn 3 màu: Đỏ Đô - Xanh Than - Trắng Sáng
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
-    html, body, [class*="css"] {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
+    /* Nền tổng thể trang bên phải: Sáng sủa, dễ nhìn */
     .stApp {
-        background: radial-gradient(circle at 10% 20%, rgba(159, 18, 57, 0.18) 0%, transparent 45%),
-                    radial-gradient(circle at 90% 80%, rgba(15, 23, 42, 0.6) 0%, transparent 50%),
-                    #0f172a !important;
-        color: #f8fafc !important;
+        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
+        color: #0f172a !important;
     }
 
+    /* Sidebar trái: Đỏ đô đậm sang trọng */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #4c0519 0%, #2e0813 60%, #0f172a 100%) !important;
         border-right: 1px solid rgba(225, 29, 72, 0.25) !important;
     }
-    
-    [data-testid="stSidebar"] > div:first-child {
-        padding-top: 20px;
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {
+        color: #f1f5f9 !important;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        margin-bottom: 6px;
     }
 
     .sidebar-brand {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 5px 10px 22px 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 20px;
+        display: flex; align-items: center; gap: 14px; padding: 5px 10px 22px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 20px;
     }
     .brand-icon-teal {
         background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-        color: #ffffff;
-        font-weight: 800;
-        font-size: 16px;
-        padding: 10px 14px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.35);
+        color: #ffffff; font-weight: 800; font-size: 16px; padding: 10px 14px; border-radius: 12px;
     }
-    .brand-text-main {
-        color: #ffffff;
-        font-size: 17px;
-        font-weight: 700;
-        line-height: 1.25;
-    }
-    .brand-sub-teal {
-        font-size: 12px;
-        color: #fb7185;
-        font-weight: 500;
-    }
-
-    [data-testid="stSidebar"] .stRadio > label {
-        color: #cbd5e1 !important;
-        font-size: 11px !important;
-        font-weight: 700 !important;
-        letter-spacing: 1px !important;
-        margin-bottom: 12px !important;
-    }
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] {
-        gap: 8px;
-    }
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 12px 16px;
-        color: #f1f5f9 !important;
-        font-weight: 600;
-        font-size: 14px;
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label:hover {
-        background: rgba(225, 29, 72, 0.25);
-        border-color: rgba(244, 63, 94, 0.4);
-        color: #ffffff !important;
-    }
-
-    .top-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #ffffff !important;
-        padding: 16px 24px;
-        border-radius: 14px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        margin-bottom: 22px;
-    }
-    .breadcrumb {
-        font-size: 12px;
-        color: #64748b;
-        font-weight: 500;
-    }
-    .page-title-text {
-        font-size: 19px;
-        font-weight: 700;
+    .brand-text-main { color: #ffffff; font-size: 17px; font-weight: 700; }
+    .brand-sub-teal { font-size: 12px; color: #fb7185; font-weight: 500; }
+    
+    /* Khung thẻ nội dung (Card trắng, chữ tối màu cực kỳ rõ ràng) */
+    .top-header, .content-card {
+        background: #ffffff !important; border-radius: 16px; padding: 28px;
+        border: 1px solid #cbd5e1; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px;
         color: #0f172a !important;
     }
-
-    .content-card {
-        background: #ffffff !important;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 32px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        margin-bottom: 24px;
+    .content-card h1, .content-card h2, .content-card h3, .content-card p, .content-card span, .content-card div {
+        color: #0f172a !important;
     }
+    .page-title-text { font-size: 19px; font-weight: 700; color: #0f172a !important; }
+    .breadcrumb { font-size: 12px; color: #64748b; font-weight: 500; }
 
-    .content-card h1, .content-card h2, .content-card h3, .content-card h4, 
-    .content-card p, .content-card span, .content-card label, .content-card div {
-        color: #0f172a;
-    }
-
+    /* Nút bấm đỏ đô */
     .stButton > button {
         background: linear-gradient(135deg, #be123c 0%, #9f1239 100%) !important;
-        color: #ffffff !important;
-        font-weight: 600 !important;
-        border-radius: 10px !important;
-        border: none !important;
+        color: #ffffff !important; font-weight: 600 !important; border-radius: 10px !important; border: none !important;
         padding: 10px 20px !important;
-        box-shadow: 0 4px 12px rgba(190, 18, 60, 0.3) !important;
-        transition: all 0.2s ease !important;
-    }
-    .stButton > button:hover {
-        background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
-        box-shadow: 0 6px 18px rgba(225, 29, 72, 0.45) !important;
-        transform: translateY(-1px) !important;
-    }
-
-    [data-testid="stFileUploadDropzone"] {
-        background: #f8fafc !important;
-        border: 1.5px dashed #cbd5e1 !important;
-        border-radius: 12px !important;
-    }
-    [data-testid="stFileUploadDropzone"]:hover {
-        border-color: #be123c !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Khởi tạo danh sách menu và trạng thái chuyển trang
 menu_options = [
     "🎛️ Tổng quan Dashboard",
     "📄 Trích xuất tài liệu (OCR)",
@@ -1629,7 +1717,6 @@ menu_options = [
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = menu_options[0]
 
-# ---------------- SIDEBAR BÊN TRÁI ----------------
 with st.sidebar:
     st.markdown("""
     <div class="sidebar-brand">
@@ -1642,20 +1729,9 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     current_index = menu_options.index(st.session_state["current_page"]) if st.session_state["current_page"] in menu_options else 0
-
-    menu_choice = st.radio(
-        "QUY TRÌNH THẨM ĐỊNH KYC",
-        options=menu_options,
-        index=current_index
-    )
-    
+    menu_choice = st.radio("QUY TRÌNH THẨM ĐỊNH KYC", options=menu_options, index=current_index)
     st.session_state["current_page"] = menu_choice
 
-    st.markdown("---")
-    st.markdown("<div style='font-size: 11px; color: #cbd5e1; padding: 0 4px;'>Công cụ hỗ trợ quy trình thẩm định hồ sơ theo giải thuật IDP & Cross-check của dự án.</div>", unsafe_allow_html=True)
-
-
-# ---------------- NỘI DUNG CHÍNH BÊN PHẢI ----------------
 title_map = {
     "🎛️ Tổng quan Dashboard": "Tổng quan Dashboard",
     "📄 Trích xuất tài liệu (OCR)": "Trích xuất tài liệu (OCR) — CCCD, GXNĐC & Form KYC",
@@ -1671,240 +1747,52 @@ st.markdown(f"""
         <div class="breadcrumb">Trang chủ / Bảng điều khiển</div>
         <div class="page-title-text">{current_title}</div>
     </div>
-    <div style="display: flex; gap: 10px;">
-        <span style="background: rgba(190, 18, 60, 0.08); color: #be123c; border: 1px solid rgba(190, 18, 60, 0.2); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer;">
-            📋 Nạp hồ sơ thực nghiệm mẫu
-        </span>
-        <span style="background: rgba(245, 158, 11, 0.08); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 12px;">
-            ● Python API: Trực tuyến
-        </span>
-    </div>
 </div>
 """, unsafe_allow_html=True)
 
-
-# --- PHẦN 0: TỔNG QUAN DASHBOARD ---
+# --- TAB 0: TỔNG QUAN ---
 if "Tổng quan Dashboard" in menu_choice:
-    st.markdown('<div class="content-card" style="text-align: center; padding: 35px 20px;">', unsafe_allow_html=True)
-    
-    if "ocr_df" in st.session_state and not st.session_state["ocr_df"].empty:
-        st.markdown("<h3 style='color: #0f172a; font-weight: 700; margin-bottom: 8px;'>🟢 Đã có hồ sơ được trích xuất trong phiên làm việc</h3>", unsafe_allow_html=True)
-        st.markdown("<p style='color: #64748b; font-size: 13.5px; max-width: 680px; margin: 0 auto 24px auto;'>Dữ liệu đã sẵn sàng. Bạn có thể chuyển sang trang Đối chiếu chéo hoặc Báo cáo KYC để tiếp tục thẩm định.</p>", unsafe_allow_html=True)
-    else:
-        st.markdown("<h3 style='color: #0f172a; font-weight: 700; margin-bottom: 8px;'>Chưa có hồ sơ nào được xử lý trong phiên làm việc</h3>", unsafe_allow_html=True)
-        st.markdown("<p style='color: #64748b; font-size: 13.5px; max-width: 680px; margin: 0 auto 24px auto;'>Hệ thống tuân thủ nguyên tắc không tạo số liệu giả. Hãy tải tài liệu thật để trích xuất OCR, đối chiếu chéo và sinh báo cáo KYC, hoặc tải bộ hồ sơ thực nghiệm để kiểm thử.</p>", unsafe_allow_html=True)
-    
-    col_act1, col_act2 = st.columns(2)
-    with col_act1:
-        if st.button("📤 Tải tài liệu lên để xử lý (Trang Trích xuất)", use_container_width=True):
-            st.session_state["current_page"] = "📄 Trích xuất tài liệu (OCR)"
-            st.rerun()
-    with col_act2:
-        if st.button("📋 Nạp bộ hồ sơ thực nghiệm mẫu (HS1, HS2, HS3)", use_container_width=True):
-            st.session_state["current_page"] = "📄 Trích xuất tài liệu (OCR)"
-            st.rerun()
-            
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    col_b1, col_b2, col_b3 = st.columns(3)
-    with col_b1:
-        st.markdown("""
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; text-align: left; height: 100%;">
-            <div style="font-weight: 700; color: #be123c; font-size: 12px; margin-bottom: 4px;">01. Phân loại & OCR</div>
-            <div style="font-weight: 700; color: #0f172a; font-size: 15px; margin-bottom: 8px;">Trích xuất đa dạng định dạng</div>
-            <div style="font-size: 12.5px; color: #64748b; line-height: 1.55;">Hỗ trợ ảnh CCCD (EasyOCR), Giấy xác nhận địa chỉ (.docx) và Form KYC khách hàng tổ chức (.docx) với bộ chuẩn hóa địa chỉ và ngày sinh.</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_b2:
-        st.markdown("""
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; text-align: left; height: 100%;">
-            <div style="font-weight: 700; color: #be123c; font-size: 12px; margin-bottom: 4px;">02. Đối chiếu chéo (Cross-check)</div>
-            <div style="font-weight: 700; color: #0f172a; font-size: 15px; margin-bottom: 8px;">So khớp Levenshtein & Cấu trúc CCCD</div>
-            <div style="font-size: 12.5px; color: #64748b; line-height: 1.55;">Tự động đối chiếu họ tên, số giấy tờ, ngày sinh, nơi thường trú và kiểm tra quy luật 12 số CCCD (mã tỉnh, năm sinh, giới tính).</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_b3:
-        st.markdown("""
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; text-align: left; height: 100%;">
-            <div style="font-weight: 700; color: #be123c; font-size: 12px; margin-bottom: 4px;">03. Đánh giá rủi ro & Thẩm định</div>
-            <div style="font-weight: 700; color: #0f172a; font-size: 15px; margin-bottom: 8px;">Quyết định đề xuất & Audit Log</div>
-            <div style="font-size: 12.5px; color: #64748b; line-height: 1.55;">Tính điểm rủi ro tổng hợp, phát hiện chứng từ thiếu và ghi nhận các hành động Phê duyệt (Accept), Bổ sung thông tin hoặc Kiểm tra thủ công.</div>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown('<div class="content-card" style="text-align: center;">', unsafe_allow_html=True)
+    st.markdown("<h3>Hệ thống Thẩm định Hồ sơ Khách hàng Tự động</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #64748b;'>Chọn chức năng ở menu bên trái hoặc bấm nút bên dưới để bắt đầu quy trình phân tích KYC.</p>", unsafe_allow_html=True)
+    if st.button("🚀 Bắt đầu Phân tích Hồ sơ Ngay", use_container_width=True):
+        st.session_state["current_page"] = "📄 Trích xuất tài liệu (OCR)"
+        st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-
-# --- PHẦN 1: TRÍCH XUẤT TÀI LIỆU (OCR) ---
+# --- TAB 1: TRÍCH XUẤT TÀI LIỆU (OCR) ---
 elif "Trích xuất tài liệu" in menu_choice:
     st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    c_left, c_right = st.columns([1, 1.8])
+    st.subheader("📥 Tải lên 3 tài liệu định danh bắt buộc")
+    c1, c2, c3 = st.columns(3)
+    with c1: cccd_file = st.file_uploader("📄 CCCD / Passport", type=["jpg", "png", "jpeg"])
+    with c2: kyc_file = st.file_uploader("📝 KYC Form", type=["jpg", "png", "jpeg"])
+    with c3: addr_file = st.file_uploader("🏠 Proof of Address", type=["jpg", "jpeg", "png"])
     
-    with c_left:
-        st.subheader("📥 Tải lên tài liệu KYC")
-        st.caption("Hỗ trợ ảnh CCCD, Giấy xác nhận địa chỉ (.docx) và Form KYC khách hàng.")
+    run_analyze = st.button("🔍 PHÂN TÍCH TOÀN BỘ HỒ SƠ KYC", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if run_analyze:
+        def load_img(uploaded):
+            if uploaded is not None:
+                file_bytes = np.asarray(bytearray(uploaded.read()), dtype=np.uint8)
+                return cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+            return None
+
+        img_cccd = load_img(cccd_file)
+        img_kyc = load_img(kyc_file)
+        img_addr = load_img(addr_file)
+
+        comp, mismatch, conf, attn, summ = process_kyc_case(img_cccd, img_kyc, img_addr)
         
-        files_in = st.file_uploader(
-            "Chọn tệp tài liệu...", 
-            accept_multiple_files=True, 
-            type=["jpg", "jpeg", "png", "webp", "bmp", "docx"],
-            key="t1_files"
-        )
-        run_btn = st.button("🚀 Bắt đầu Trích xuất OCR", use_container_width=True)
-        
-    with c_right:
-        st.subheader("📋 Kết quả Phân loại & Trích xuất")
-        sum_out_area = st.empty()
-        detail_out_area = st.empty()
+        st.session_state["res_comp"] = comp
+        st.session_state["res_mismatch"] = mismatch
+        st.session_state["res_conf"] = conf
+        st.session_state["res_attn"] = attn
+        st.session_state["res_summ"] = summ
+        st.success("✅ Đã phân tích hồ sơ thành công! Hãy chuyển sang trang 'Báo cáo KYC & Cờ rủi ro' để xem chi tiết.")
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    with st.expander("📊 Xem dạng Pandas DataFrame", expanded=False):
-        df_out_area = st.empty()
-    with st.expander("📜 Văn bản OCR thô (Raw OCR Text)", expanded=False):
-        dbg_out_area = st.empty()
-
-    if run_btn:
-        if not files_in:
-            st.warning("⚠️ Vui lòng tải lên ít nhất 1 tài liệu.")
-        else:
-            with st.spinner("🚀 Đang lưu file tạm và phân tích EasyOCR..."):
-                temp_dir = tempfile.mkdtemp()
-                temp_files = []
-                
-                for uploaded_file in files_in:
-                    temp_path = os.path.join(temp_dir, uploaded_file.name)
-                    with open(temp_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                    temp_files.append(temp_path)
-                
-                sum_html, det_html, df, csv_path, dbg = ui_process(temp_files)
-                
-                # Lưu vào Session State để không bị mất khi chuyển tab
-                st.session_state["ocr_sum_html"] = sum_html
-                st.session_state["ocr_det_html"] = det_html
-                st.session_state["ocr_df"] = df
-                st.session_state["ocr_csv_path"] = csv_path
-                st.session_state["ocr_dbg"] = dbg
-
-    # Hiển thị kết quả đã lưu trong Session State (nếu có)
-    if "ocr_sum_html" in st.session_state:
-        sum_out_area.markdown(st.session_state["ocr_sum_html"], unsafe_allow_html=True)
-        detail_out_area.markdown(st.session_state["ocr_det_html"], unsafe_allow_html=True)
-        df_out_area.dataframe(st.session_state["ocr_df"], use_container_width=True)
-        dbg_out_area.code(st.session_state["ocr_dbg"])
-        
-        if os.path.exists(st.session_state.get("ocr_csv_path", "")):
-            with open(st.session_state["ocr_csv_path"], "rb") as f:
-                st.download_button(
-                    label="⬇️ Tải file CSV trích xuất", 
-                    data=f, 
-                    file_name="ket_qua_idp.csv", 
-                    mime="text/csv"
-                )
-
-
-# --- PHẦN 2: ĐỐI CHIẾU HỒ SƠ (CROSS-CHECK) ---
-elif "Đối chiếu chéo" in menu_choice:
-    st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.info("💡 Dữ liệu tự động kế thừa từ bước Trích xuất OCR. Bạn cũng có thể tải file đối soát độc lập bên dưới.")
-    
-    c_left, c_right = st.columns([1, 1.8])
-    
-    with c_left:
-        files_cc = st.file_uploader(
-            "Tải lại tài liệu / File CSV (Tùy chọn)", 
-            accept_multiple_files=True, 
-            type=["jpg", "jpeg", "png", "webp", "bmp", "docx", "csv"],
-            key="t2_files"
-        )
-        mode_cc = st.radio(
-            "Cách chia hồ sơ",
-            options=["prefix", "single"],
-            format_func=lambda x: "Tách hồ sơ theo tiền tố tên file (HS1_..., HS2_...)" if x == "prefix" else "Gộp tất cả file vào 1 hồ sơ",
-            key="t2_mode"
-        )
-        cc_btn = st.button("🔎 Tiến hành Đối chiếu Chéo", use_container_width=True)
-        
-    with c_right:
-        cc_html_area = st.empty()
-        
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    with st.expander("📊 Xem dạng Pandas DataFrame đối soát", expanded=False):
-        cc_df_area = st.empty()
-
-    if cc_btn:
-        with st.spinner("🔎 Đang thực hiện thuật toán đối chiếu chéo..."):
-            temp_files_cc = []
-            if files_cc:
-                temp_dir_cc = tempfile.mkdtemp()
-                for uploaded_file in files_cc:
-                    temp_path = os.path.join(temp_dir_cc, uploaded_file.name)
-                    with open(temp_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                    temp_files_cc.append(temp_path)
-            
-            res = ui_crosscheck(temp_files_cc if temp_files_cc else None, mode_cc, None)
-            st.session_state["cc_res"] = res
-
-    # Hiển thị kết quả đối chiếu đã lưu trong Session State (nếu có)
-    if "cc_res" in st.session_state:
-        res = st.session_state["cc_res"]
-        if isinstance(res, tuple):
-            cc_html, cc_df, xlsx_path = res[0], res[1], res[2]
-            cc_html_area.markdown(cc_html, unsafe_allow_html=True)
-            cc_df_area.dataframe(cc_df, use_container_width=True)
-            
-            if xlsx_path and os.path.exists(xlsx_path):
-                with open(xlsx_path, "rb") as f:
-                    st.download_button(
-                        label="⬇️ Tải báo cáo Excel đối chiếu", 
-                        data=f, 
-                        file_name="doi_chieu_ho_so.xlsx", 
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-        else:
-            cc_html_area.markdown(res, unsafe_allow_html=True)
-
-
-# --- PHẦN 3: BÁO CÁO KYC & CỜ RỦI RO ---
+# --- TAB 2 & 3: BÁO CÁO KYC & CỜ RỦI RO (ĐÃ FIX HIỂN THỊ TRỌN VẸN) ---
 elif "Báo cáo KYC" in menu_choice:
     st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("📋 Kiểm tra tính toàn vẹn & Tổng hợp Risk Score")
-    st.caption("Hệ thống tự động liên kết kết quả để xuất Báo cáo KYC Summary.")
-
-    c_left, c_right = st.columns([1, 1.8])
-    
-    with c_left:
-        mode_p4 = st.radio(
-            "Cách chia hồ sơ",
-            options=["prefix", "single"],
-            format_func=lambda x: "Tách hồ sơ theo tiền tố tên file (HS1_..., HS2_...)" if x == "prefix" else "Gộp tất cả file vào 1 hồ sơ",
-            key="t3_mode"
-        )
-        btn_p4 = st.button("⚡ Xuất Báo cáo KYC Summary", use_container_width=True)
-        
-    with c_right:
-        html_out_p4_area = st.empty()
-        html_out_p4_area.info("👉 Bấm nút 'Xuất Báo cáo KYC Summary' để xem kết quả thẩm định.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if btn_p4:
-        with st.spinner("⚡ Đang tổng hợp báo cáo rủi ro..."):
-            st.session_state["kyc_report_done"] = True
-
-    if st.session_state.get("kyc_report_done", False):
-        html_out_p4_area.success("✅ Đã khởi tạo thành công Báo cáo KYC Summary!")
-
-
-# --- PHẦN 4: HỒ SƠ KHÁCH HÀNG ---
-elif "Hồ sơ khách hàng" in menu_choice:
-    st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("👥 Danh sách Hồ sơ Khách hàng đã xử lý")
-    
-    if "ocr_df" in st.session_state and not st.session_state["ocr_df"].empty:
-        st.dataframe(st.session_state["ocr_df"], use_container_width=True)
-    else:
-        st.caption("Chưa có hồ sơ khách hàng nào trong phiên làm việc hiện tại.")
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.subheader("📋 Báo cáo Đánh giá Rủi ro &
