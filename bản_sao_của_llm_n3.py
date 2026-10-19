@@ -1463,183 +1463,144 @@ import tempfile
 import os
 
 # ====================================================================
-# GIAO DIỆN CHUYÊN NGHIỆP: SMART KYC & DOCUMENT AI DASHBOARD
+# STREAMLIT UI: CLEAN & MINIMALIST FINTECH DESIGN
 # ====================================================================
 
-# 1. Cấu hình trang rộng
 st.set_page_config(
-    page_title="Smart KYC & IDP Engine — Banking Document AI", 
+    page_title="IDP & Intelligent KYC Engine", 
     layout="wide", 
     page_icon="🛡️"
 )
 
-# 2. Tùy chỉnh CSS cao cấp cho giao diện Ngân hàng / Fintech
+# Inject Custom CSS tối giản, sang trọng
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
     html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* Nền chính kiểu Radial Gradient độ sâu cao */
+    /* Nền ứng dụng tối giản, chiều sâu nhẹ */
     .stApp {
-        background: radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
-                    radial-gradient(circle at 90% 90%, rgba(59, 130, 246, 0.12) 0%, transparent 45%),
-                    #0f172a !important;
-        color: #f8fafc;
+        background-color: #0b0f17 !important;
+        color: #e2e8f0;
     }
 
-    /* Header Bar thương hiệu */
-    .brand-header {
+    /* Top Brand Bar */
+    .top-bar {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 16px 24px;
-        background: rgba(30, 41, 59, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        backdrop-filter: blur(12px);
-        margin-bottom: 25px;
+        padding: 16px 28px;
+        background: #111827;
+        border-bottom: 1px solid #1f2937;
+        margin: -60px -60px 25px -60px;
     }
     .brand-title {
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 700;
         color: #ffffff;
+        letter-spacing: -0.3px;
         display: flex;
         align-items: center;
         gap: 10px;
     }
-    .status-tag {
-        background: rgba(16, 185, 129, 0.15);
-        color: #10b981;
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
+    .brand-badge {
+        font-size: 11px;
         font-weight: 600;
+        background: rgba(59, 130, 246, 0.12);
+        color: #60a5fa;
+        padding: 3px 10px;
+        border-radius: 20px;
+        border: 1px solid rgba(59, 130, 246, 0.25);
     }
 
-    /* Hero Banner giới thiệu dự án */
-    .hero-container {
-        padding: 10px 5px 25px 5px;
-    }
-    .hero-headline {
-        font-size: 34px;
+    /* Banner giới thiệu dự án */
+    .hero-title {
+        font-size: 32px;
         font-weight: 700;
         color: #ffffff;
-        line-height: 1.25;
-        margin-bottom: 10px;
-    }
-    .hero-highlight {
-        background: linear-gradient(135deg, #38bdf8 0%, #3b82f6 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.5px;
+        margin-bottom: 8px;
     }
     .hero-sub {
-        font-size: 15px;
-        color: #94a3b8;
-        max-width: 800px;
+        font-size: 14px;
+        color: #9ca3af;
         line-height: 1.6;
+        margin-bottom: 25px;
     }
 
-    /* Khung Metric Thống kê */
-    .metric-card {
-        background: rgba(30, 41, 59, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        padding: 18px 20px;
-        backdrop-filter: blur(8px);
-    }
-    .metric-label {
-        font-size: 13px;
-        color: #94a3b8;
-        font-weight: 600;
-        margin-bottom: 6px;
-    }
-    .metric-val {
-        font-size: 26px;
-        font-weight: 700;
-        color: #ffffff;
-    }
-
-    /* Custom thiết kế Tab dạng Pill */
+    /* Custom Streamlit Tabs dạng Button tối giản */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: rgba(30, 41, 59, 0.6);
+        gap: 8px;
+        background-color: #111827;
         padding: 6px;
-        border-radius: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+        border: 1px solid #1f2937;
     }
     .stTabs [data-baseweb="tab"] {
-        height: 42px;
-        border-radius: 10px;
-        color: #94a3b8;
-        font-weight: 600;
+        height: 40px;
+        border-radius: 8px;
+        color: #9ca3af;
+        font-size: 14px;
+        font-weight: 500;
         border: none !important;
-        padding: 0 20px;
+        padding: 0 18px;
     }
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+        background-color: #2563eb !important;
         color: #ffffff !important;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        font-weight: 600;
     }
 
-    /* Khung Upload & Button */
+    /* Style cho ô Upload file & Nút bấm */
     [data-testid="stFileUploadDropzone"] {
-        background: rgba(15, 23, 42, 0.6) !important;
-        border: 1.5px dashed rgba(59, 130, 246, 0.3) !important;
-        border-radius: 14px !important;
+        background: #111827 !important;
+        border: 1px dashed #374151 !important;
+        border-radius: 12px !important;
+    }
+    [data-testid="stFileUploadDropzone"]:hover {
+        border-color: #3b82f6 !important;
     }
     .stButton > button {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        background: #2563eb;
         color: #ffffff;
         font-weight: 600;
-        border-radius: 10px;
+        border-radius: 8px;
         border: none;
-        padding: 10px 24px;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-        transition: all 0.2s ease;
+        padding: 10px 20px;
+        transition: all 0.15s ease;
     }
     .stButton > button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
+        background: #1d4ed8;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. Top Navigation Header
+# Top Bar
 st.markdown("""
-<div class="brand-header">
+<div class="top-bar">
     <div class="brand-title">
-        <span style="color: #3b82f6;">🛡️</span> INTELLIGENT KYC <span style="font-size: 13px; color: #64748b; font-weight: 400;">| Document AI Engine</span>
+        🛡️ Smart KYC Engine <span class="brand-badge">IDP & Document AI</span>
     </div>
-    <div class="status-tag">● System Active</div>
+    <div style="font-size: 13px; color: #10b981; font-weight: 500;">
+        ● System Operational
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
-# 4. Banner Giới thiệu dự án
-st.markdown("""
-<div class="hero-container">
-    <div class="hero-headline">Hệ thống Xử lý Tài liệu Thông minh <br><span class="hero-highlight">& Báo cáo Kiểm tra KYC Tự động</span></div>
-    <div class="hero-sub">Tự động phân loại hồ sơ, trích xuất dữ liệu bằng OCR từ ảnh CCCD, Giấy xác nhận địa chỉ và Form KYC, hỗ trợ đối chiếu chéo thông tin và cảnh báo cờ rủi ro gian lận.</div>
-</div>
-""", unsafe_allow_html=True)
-
-# 5. Các thẻ chỉ số nhanh (Overview Metrics)
-m1, m2, m3, m4 = st.columns(4)
-with m1:
-    st.markdown("""<div class="metric-card"><div class="metric-label">HỒ SƠ ĐÃ XỬ LÝ</div><div class="metric-val">1,248 <span style="font-size: 13px; color: #10b981;">+12%</span></div></div>""", unsafe_allow_html=True)
-with m2:
-    st.markdown("""<div class="metric-card"><div class="metric-label">ĐỘ CHÍNH XÁC OCR</div><div class="metric-val">98.4% <span style="font-size: 13px; color: #10b981;">+0.5%</span></div></div>""", unsafe_allow_html=True)
-with m3:
-    st.markdown("""<div class="metric-card"><div class="metric-label">TỐC ĐỘ XỬ LÝ trung bình</div><div class="metric-val">1.2s <span style="font-size: 13px; color: #38bdf8;">/hồ sơ</span></div></div>""", unsafe_allow_html=True)
-with m4:
-    st.markdown("""<div class="metric-card"><div class="metric-label">CỜ CẢNH BÁO RỦI RO</div><div class="metric-val" style="color:#f87171;">13 <span style="font-size: 13px; color: #f87171;">cần kiểm tra</span></div></div>""", unsafe_allow_html=True)
+# Header & Mô tả dự án
+st.markdown('<div class="hero-title">Hệ thống Xử lý Tài liệu Thông minh & Báo cáo KYC</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="hero-sub">Tải lên <b>ảnh CCCD</b>, <b>Giấy xác nhận địa chỉ (.docx)</b>, <b>Form KYC (.docx)</b> — '
+    'hệ thống tự phân loại, trích xuất thông tin, đối chiếu chéo và tổng hợp <b>KYC Summary</b> tự động.</div>', 
+    unsafe_allow_html=True
+)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 6. Các Tab chức năng giữ nguyên đúng 100% logic của nhóm
+# Tabs chức năng chính
 tab1, tab2, tab3 = st.tabs([
     "1️⃣ Trích xuất dữ liệu", 
     "2️⃣ Đối chiếu hồ sơ (Cross-check)", 
@@ -1654,29 +1615,29 @@ with tab1:
     with c_left:
         st.subheader("📥 Tải lên tài liệu")
         files_in = st.file_uploader(
-            "Tải tài liệu (CCCD, Giấy XN, Form KYC...)", 
+            "Tải tài liệu (có thể chọn nhiều file)", 
             accept_multiple_files=True, 
             type=["jpg", "jpeg", "png", "webp", "bmp", "docx"],
             key="t1_files"
         )
-        run_btn = st.button("🚀 Bắt đầu Phân tích AI", use_container_width=True)
+        run_btn = st.button("🚀 Phân tích tài liệu", use_container_width=True)
         
     with c_right:
-        st.subheader("📊 Kết quả Phân loại & Trích xuất")
+        st.subheader("📊 Kết quả phân loại & Trích xuất")
         sum_out_area = st.empty()
         detail_out_area = st.empty()
 
     st.markdown("---")
-    with st.expander("🔍 Xem bảng dữ liệu Pandas DataFrame", expanded=False):
+    with st.expander("🔍 Xem dạng Pandas DataFrame", expanded=False):
         df_out_area = st.empty()
-    with st.expander("📜 Văn bản OCR thô (Raw OCR text)", expanded=False):
+    with st.expander("📜 Văn bản OCR thô (dùng để kiểm tra khi trích xuất sai)", expanded=False):
         dbg_out_area = st.empty()
 
     if run_btn:
         if not files_in:
             st.warning("⚠️ Vui lòng tải lên ít nhất 1 tài liệu.")
         else:
-            with st.spinner("⚡ Hệ thống AI đang tiến hành OCR & phân loại..."):
+            with st.spinner("🚀 Đang phân tích và trích xuất dữ liệu..."):
                 sum_html, det_html, df, csv_path, dbg = ui_process(files_in)
                 sum_out_area.markdown(sum_html, unsafe_allow_html=True)
                 detail_out_area.markdown(det_html, unsafe_allow_html=True)
@@ -1686,7 +1647,7 @@ with tab1:
                 if os.path.exists(csv_path):
                     with open(csv_path, "rb") as f:
                         st.download_button(
-                            label="⬇️ Tải file kết quả CSV", 
+                            label="⬇️ Tải kết quả (CSV)", 
                             data=f, 
                             file_name="ket_qua_idp.csv", 
                             mime="text/csv"
@@ -1695,13 +1656,13 @@ with tab1:
 # ---------------- Tab 2: Phần 3 ----------------
 with tab2:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.info("💡 Dữ liệu được tự động liên kết từ Tab 1. Bạn cũng có thể tải thêm file bổ sung bên dưới.")
+    st.info("💡 Hệ thống sẽ **tự động lấy kết quả** từ Tab 1, hoặc bạn có thể tải file thủ công tại đây.")
     
     c_left, c_right = st.columns([1, 1.8])
     
     with c_left:
         files_cc = st.file_uploader(
-            "Tải lại tài liệu / CSV đối soát (Tùy chọn)", 
+            "Tải lại tài liệu / CSV (Tùy chọn)", 
             accept_multiple_files=True, 
             type=["jpg", "jpeg", "png", "webp", "bmp", "docx", "csv"],
             key="t2_files"
@@ -1712,17 +1673,17 @@ with tab2:
             format_func=lambda x: "Tách hồ sơ theo tiền tố tên file (HS1_..., HS2_...)" if x == "prefix" else "Gộp tất cả file vào 1 hồ sơ",
             key="t2_mode"
         )
-        cc_btn = st.button("🔎 Tiến hành Đối chiếu Chéo", use_container_width=True)
+        cc_btn = st.button("🔎 Đối chiếu hồ sơ", use_container_width=True)
         
     with c_right:
         cc_html_area = st.empty()
         
     st.markdown("---")
-    with st.expander("📊 Chi tiết bảng đối soát (DataFrame)", expanded=False):
+    with st.expander("📊 Xem dạng Pandas DataFrame", expanded=False):
         cc_df_area = st.empty()
 
     if cc_btn:
-        with st.spinner("🔎 Đang đối chiếu chéo giữa các văn bản..."):
+        with st.spinner("🔎 Đang đối chiếu hồ sơ..."):
             res = ui_crosscheck(files_cc, mode_cc, None)
             if isinstance(res, tuple):
                 cc_html, cc_df, xlsx_path = res[0], res[1], res[2]
@@ -1732,7 +1693,7 @@ with tab2:
                 if xlsx_path and os.path.exists(xlsx_path):
                     with open(xlsx_path, "rb") as f:
                         st.download_button(
-                            label="⬇️ Xuất báo cáo Excel (.xlsx)", 
+                            label="⬇️ Tải báo cáo đối chiếu (Excel)", 
                             data=f, 
                             file_name="doi_chieu_ho_so.xlsx", 
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -1743,7 +1704,7 @@ with tab2:
 # ---------------- Tab 3: Phần 4 (KYC Summary) ----------------
 with tab3:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.subheader("📋 Kiểm tra tính toàn vẹn (Completeness Check) & Cờ rủi ro")
+    st.subheader("📋 Kiểm tra tính toàn vẹn (Completeness Check) & Tổng hợp Risk Flags")
     st.caption("Hệ thống tự động liên kết dữ liệu từ Tab 1 và Tab 2 để xuất Báo cáo KYC Summary.")
 
     c_left, c_right = st.columns([1, 1.8])
@@ -1755,12 +1716,12 @@ with tab3:
             format_func=lambda x: "Tách hồ sơ theo tiền tố tên file (HS1_..., HS2_...)" if x == "prefix" else "Gộp tất cả file vào 1 hồ sơ",
             key="t3_mode"
         )
-        btn_p4 = st.button("⚡ Xuất Báo cáo KYC Summary", use_container_width=True)
+        btn_p4 = st.button("⚡ Tự động tổng hợp KYC Summary", use_container_width=True)
         
     with c_right:
         html_out_p4_area = st.empty()
-        html_out_p4_area.info("👉 Bấm nút 'Xuất Báo cáo KYC Summary' để khởi tạo phân tích rủi ro.")
+        html_out_p4_area.info("👉 Bấm nút 'Tự động tổng hợp KYC Summary' để hiển thị báo cáo.")
 
     if btn_p4:
-        with st.spinner("⚡ Đang tổng hợp báo cáo tổng thể..."):
+        with st.spinner("⚡ Đang tổng hợp báo cáo rủi ro KYC..."):
             html_out_p4_area.success("✅ Đã tạo thành công báo cáo KYC Summary!")
