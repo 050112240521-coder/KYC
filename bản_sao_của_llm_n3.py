@@ -1463,300 +1463,194 @@ import tempfile
 import os
 
 # ====================================================================
-# STREAMLIT UI: PREMIUM FINTECH (CRIMSON RED & ROYAL BLUE)
+# STREAMLIT UI: SIDEBAR DASHBOARD (CRIMSON RED SIDEBAR & CLEAN WHITE BODY)
 # ====================================================================
 
 st.set_page_config(
-    page_title="Smart KYC & IDP Engine — Executive Edition", 
+    page_title="Intelligent KYC — Customer Onboarding", 
     layout="wide", 
-    page_icon="🛡️"
+    page_icon="🛡️",
+    initial_sidebar_state="expanded"
 )
 
-# Custom CSS: Phối màu Đỏ Đô - Xanh Dương - Trắng Sáng
+# Custom CSS ép giao diện theo bố cục Sidebar Đỏ Đô / Nội dung Trắng sáng
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* Nền chính Gradient Đỏ Đô sâu kết hợp Xanh Đêm */
+    /* 1. NỀN NỘI DUNG CHÍNH (SÁNG / TRẮNG TINH) */
     .stApp {
-        background: radial-gradient(circle at 10% 10%, rgba(159, 18, 57, 0.2) 0%, transparent 45%),
-                    radial-gradient(circle at 90% 85%, rgba(37, 99, 235, 0.18) 0%, transparent 45%),
-                    #0b0d14 !important;
-        color: #f8fafc;
+        background-color: #f8fafc !important;
+        color: #0f172a !important;
     }
 
-    /* Top Navigation Bar */
-    .top-bar {
+    /* 2. SIDEBAR BÊN TRÁI (ĐỎ ĐÔ ĐẬM & XANH ĐÊM SANG TRỌNG) */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #380a10 0%, #1a060a 60%, #0f172a 100%) !important;
+        border-right: 1px solid rgba(225, 29, 72, 0.2) !important;
+    }
+    
+    /* Ẩn bớt các khoảng trống thừa của Streamlit */
+    [data-testid="stSidebar"] > div:first-child {
+        padding-top: 20px;
+    }
+
+    /* Logo Brand trong Sidebar */
+    .sidebar-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 15px 25px 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 20px;
+    }
+    .brand-icon {
+        background: linear-gradient(135deg, #e11d48 0%, #2563eb 100%);
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 16px;
+        padding: 8px 12px;
+        border-radius: 10px;
+    }
+    .brand-text {
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .brand-sub {
+        font-size: 12px;
+        color: #38bdf8;
+        font-weight: 500;
+    }
+
+    /* Định dạng Radio Button trong Sidebar thành Menu dạng Thẻ (Sidebar Navigation) */
+    [data-testid="stSidebar"] .stRadio > label {
+        color: #94a3b8 !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.8px !important;
+        margin-bottom: 10px !important;
+    }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] {
+        gap: 8px;
+    }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        padding: 12px 16px;
+        color: #e2e8f0 !important;
+        font-weight: 600;
+        font-size: 13.5px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label:hover {
+        background: rgba(225, 29, 72, 0.2);
+        border-color: rgba(225, 29, 72, 0.4);
+    }
+
+    /* 3. TOP BAR HEADER NỘI DUNG PHÍA PHẢI */
+    .top-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 16px 28px;
-        background: rgba(23, 15, 26, 0.75);
-        border-bottom: 1px solid rgba(225, 29, 72, 0.25);
-        backdrop-filter: blur(12px);
-        margin: -60px -60px 30px -60px;
-    }
-    .brand-title {
-        font-size: 19px;
-        font-weight: 700;
-        color: #ffffff;
-        letter-spacing: -0.3px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .brand-title span.red-accent {
-        color: #f43f5e;
-    }
-    .brand-badge {
-        font-size: 11px;
-        font-weight: 600;
-        background: rgba(37, 99, 235, 0.18);
-        color: #60a5fa;
-        padding: 4px 10px;
-        border-radius: 20px;
-        border: 1px solid rgba(59, 130, 246, 0.3);
-    }
-
-    /* Banner chính */
-    .hero-title {
-        font-size: 34px;
-        font-weight: 700;
-        color: #ffffff;
-        letter-spacing: -0.5px;
-        line-height: 1.25;
-        margin-bottom: 10px;
-    }
-    .hero-title span.highlight-red {
-        background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .hero-title span.highlight-blue {
-        background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .hero-sub {
-        font-size: 14px;
-        color: #cbd5e1;
-        line-height: 1.6;
-        margin-bottom: 30px;
-        max-width: 850px;
-    }
-
-    /* Custom Streamlit Tabs dạng Pill màu Đỏ Đô / Xanh */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: rgba(18, 16, 26, 0.8);
-        padding: 6px;
+        background: #ffffff;
+        padding: 16px 24px;
         border-radius: 12px;
-        border: 1px solid rgba(225, 29, 72, 0.2);
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        margin-bottom: 24px;
     }
-    .stTabs [data-baseweb="tab"] {
-        height: 42px;
-        border-radius: 8px;
-        color: #94a3b8;
-        font-size: 14px;
-        font-weight: 600;
-        border: none !important;
-        padding: 0 20px;
+    .breadcrumb {
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 500;
     }
-    .stTabs [aria-selected="true"] {
+    .page-title-text {
+        font-size: 20px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    /* 4. CARD TRẮNG CHỨA NỘI DUNG LÀM VIỆC (MẪU WEB KHAI BÁO) */
+    .content-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);
+        margin-bottom: 24px;
+    }
+
+    /* Nút bấm Đỏ Đô / Xanh */
+    .stButton > button {
         background: linear-gradient(135deg, #be123c 0%, #9f1239 100%) !important;
         color: #ffffff !important;
-        box-shadow: 0 4px 14px rgba(190, 18, 60, 0.35);
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        border: none !important;
+        padding: 10px 20px !important;
+        box-shadow: 0 4px 12px rgba(190, 18, 60, 0.25) !important;
+    }
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
     }
 
-    /* Khung Upload & Nút bấm chính */
+    /* Ô Tải tệp lên (Upload Box) */
     [data-testid="stFileUploadDropzone"] {
-        background: rgba(18, 20, 32, 0.7) !important;
-        border: 1.5px dashed rgba(37, 99, 235, 0.35) !important;
+        background: #f8fafc !important;
+        border: 1.5px dashed #cbd5e1 !important;
         border-radius: 12px !important;
     }
     [data-testid="stFileUploadDropzone"]:hover {
-        border-color: #f43f5e !important;
-    }
-    .stButton > button {
-        background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-        color: #ffffff;
-        font-weight: 600;
-        border-radius: 8px;
-        border: none;
-        padding: 10px 22px;
-        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
-        transition: all 0.2s ease;
-    }
-    .stButton > button:hover {
-        background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-        transform: translateY(-1px);
-        box-shadow: 0 6px 18px rgba(225, 29, 72, 0.45);
-    }
-
-    /* Khung Info & Alert */
-    .stAlert {
-        border-radius: 10px;
-        background-color: rgba(30, 41, 59, 0.8) !important;
-        border: 1px solid rgba(59, 130, 246, 0.3) !important;
+        border-color: #2563eb !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Top Bar
-st.markdown("""
-<div class="top-bar">
-    <div class="brand-title">
-        <span class="red-accent">🛡️</span> Smart KYC Engine <span class="brand-badge">Document AI</span>
+# ---------------- SIDEBAR BÊN TRÁI ----------------
+with st.sidebar:
+    # Logo thương hiệu
+    st.markdown("""
+    <div class="sidebar-brand">
+        <div class="brand-icon">KYC</div>
+        <div>
+            <div class="brand-text">Intelligent KYC</div>
+            <div class="brand-sub">Customer Onboarding</div>
+        </div>
     </div>
-    <div style="font-size: 13px; color: #34d399; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-        <span style="height: 8px; width: 8px; background-color: #34d399; border-radius: 50%; display: inline-block;"></span> System Ready
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# Tiêu đề & Mô tả dự án
-st.markdown("""
-<div class="hero-title">
-    Hệ thống Xử lý Tài liệu Thông minh <br>
-    <span class="highlight-red">& Báo cáo Kiểm tra KYC</span> <span class="highlight-blue">Tự động</span>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown(
-    '<div class="hero-sub">Tải lên <b>ảnh CCCD</b>, <b>Giấy xác nhận địa chỉ (.docx)</b>, <b>Form KYC (.docx)</b> — '
-    'hệ thống tự phân loại, trích xuất thông tin bằng OCR, đối chiếu chéo và tổng hợp <b>KYC Summary</b> tự động.</div>', 
-    unsafe_allow_html=True
-)
-
-# Tabs chức năng chính
-tab1, tab2, tab3 = st.tabs([
-    "1️⃣ Trích xuất dữ liệu", 
-    "2️⃣ Đối chiếu hồ sơ (Cross-check)", 
-    "3️⃣ Báo cáo KYC Summary & Cờ rủi ro"
-])
-
-# ---------------- Tab 1: Phần 2 ----------------
-with tab1:
-    st.markdown("<br>", unsafe_allow_html=True)
-    c_left, c_right = st.columns([1, 1.8])
-    
-    with c_left:
-        st.subheader("📥 Tải lên tài liệu")
-        files_in = st.file_uploader(
-            "Tải tài liệu (có thể chọn nhiều file)", 
-            accept_multiple_files=True, 
-            type=["jpg", "jpeg", "png", "webp", "bmp", "docx"],
-            key="t1_files"
-        )
-        run_btn = st.button("🚀 Bắt đầu Phân tích AI", use_container_width=True)
-        
-    with c_right:
-        st.subheader("📊 Kết quả Phân loại & Trích xuất")
-        sum_out_area = st.empty()
-        detail_out_area = st.empty()
+    # Menu điều hướng chính
+    menu_choice = st.radio(
+        "QUY TRÌNH THẨM ĐỊNH KYC",
+        options=[
+            "📊 1. Trích xuất tài liệu (OCR)",
+            "🔍 2. Đối chiếu hồ sơ (Cross-check)",
+            "🛡️ 3. Báo cáo KYC & Cờ rủi ro"
+        ],
+        index=0
+    )
 
     st.markdown("---")
-    with st.expander("🔍 Xem dạng Pandas DataFrame", expanded=False):
-        df_out_area = st.empty()
-    with st.expander("📜 Văn bản OCR thô (dùng để kiểm tra khi trích xuất sai)", expanded=False):
-        dbg_out_area = st.empty()
+    st.caption("⚙️ Engine Backend: **Python & EasyOCR**")
+    st.caption("🟢 Trạng thái hệ thống: **Sẵn sàng**")
 
-    if run_btn:
-        if not files_in:
-            st.warning("⚠️ Vui lòng tải lên ít nhất 1 tài liệu.")
-        else:
-            with st.spinner("🚀 Đang phân tích và trích xuất dữ liệu..."):
-                sum_html, det_html, df, csv_path, dbg = ui_process(files_in)
-                sum_out_area.markdown(sum_html, unsafe_allow_html=True)
-                detail_out_area.markdown(det_html, unsafe_allow_html=True)
-                df_out_area.dataframe(df, use_container_width=True)
-                dbg_out_area.code(dbg)
-                
-                if os.path.exists(csv_path):
-                    with open(csv_path, "rb") as f:
-                        st.download_button(
-                            label="⬇️ Tải kết quả (CSV)", 
-                            data=f, 
-                            file_name="ket_qua_idp.csv", 
-                            mime="text/csv"
-                        )
 
-# ---------------- Tab 2: Phần 3 ----------------
-with tab2:
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.info("💡 Hệ thống sẽ **tự động lấy kết quả** từ Tab 1, hoặc bạn có thể tải file thủ công tại đây.")
-    
-    c_left, c_right = st.columns([1, 1.8])
-    
-    with c_left:
-        files_cc = st.file_uploader(
-            "Tải lại tài liệu / CSV (Tùy chọn)", 
-            accept_multiple_files=True, 
-            type=["jpg", "jpeg", "png", "webp", "bmp", "docx", "csv"],
-            key="t2_files"
-        )
-        mode_cc = st.radio(
-            "Cách chia hồ sơ",
-            options=["prefix", "single"],
-            format_func=lambda x: "Tách hồ sơ theo tiền tố tên file (HS1_..., HS2_...)" if x == "prefix" else "Gộp tất cả file vào 1 hồ sơ",
-            key="t2_mode"
-        )
-        cc_btn = st.button("🔎 Bắt đầu Đối chiếu Hồ sơ", use_container_width=True)
-        
-    with c_right:
-        cc_html_area = st.empty()
-        
-    st.markdown("---")
-    with st.expander("📊 Xem dạng Pandas DataFrame", expanded=False):
-        cc_df_area = st.empty()
+# ---------------- NỘI DUNG CHÍNH BÊN PHẢI ----------------
 
-    if cc_btn:
-        with st.spinner("🔎 Đang đối chiếu hồ sơ..."):
-            res = ui_crosscheck(files_cc, mode_cc, None)
-            if isinstance(res, tuple):
-                cc_html, cc_df, xlsx_path = res[0], res[1], res[2]
-                cc_html_area.markdown(cc_html, unsafe_allow_html=True)
-                cc_df_area.dataframe(cc_df, use_container_width=True)
-                
-                if xlsx_path and os.path.exists(xlsx_path):
-                    with open(xlsx_path, "rb") as f:
-                        st.download_button(
-                            label="⬇️ Tải báo cáo đối chiếu (Excel)", 
-                            data=f, 
-                            file_name="doi_chieu_ho_so.xlsx", 
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-            else:
-                cc_html_area.markdown(res, unsafe_allow_html=True)
-
-# ---------------- Tab 3: Phần 4 (KYC Summary) ----------------
-with tab3:
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.subheader("📋 Kiểm tra tính toàn vẹn (Completeness Check) & Tổng hợp Risk Flags")
-    st.caption("Hệ thống tự động liên kết dữ liệu từ Tab 1 và Tab 2 để xuất Báo cáo KYC Summary.")
-
-    c_left, c_right = st.columns([1, 1.8])
-    
-    with c_left:
-        mode_p4 = st.radio(
-            "Cách chia hồ sơ",
-            options=["prefix", "single"],
-            format_func=lambda x: "Tách hồ sơ theo tiền tố tên file (HS1_..., HS2_...)" if x == "prefix" else "Gộp tất cả file vào 1 hồ sơ",
-            key="t3_mode"
-        )
-        btn_p4 = st.button("⚡ Tự động tổng hợp KYC Summary", use_container_width=True)
-        
-    with c_right:
-        html_out_p4_area = st.empty()
-        html_out_p4_area.info("👉 Bấm nút 'Tự động tổng hợp KYC Summary' để hiển thị báo cáo.")
-
-    if btn_p4:
-        with st.spinner("⚡ Đang tổng hợp báo cáo rủi ro KYC..."):
-            html_out_p4_area.success("✅ Đã tạo thành công báo cáo KYC Summary!")
-    if btn_p4:
-        with st.spinner("⚡ Đang tổng hợp báo cáo rủi ro KYC..."):
-            html_out_p4_area.success("✅ Đã tạo thành công báo cáo KYC Summary!")
+# Top bar hiển thị tên trang đang chọn
+st.markdown(f"""
+<div class="top-header">
+    <div>
+        <div class="breadcrumb">Trang chủ / Quy trình KYC</div>
+        <div class="page-title-text">{menu_choice[2:]}</div>
+    </div>
+    <div>
+        <span style="background: rgba(37, 99,
