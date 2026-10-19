@@ -1768,14 +1768,13 @@ elif "Trích xuất tài liệu" in menu_choice:
     run_analyze = st.button("🔍 PHÂN TÍCH TOÀN BỘ HỒ SƠ KYC", use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-   if run_analyze:
+    if run_analyze:
         files_dict = {
             "CCCD / Passport": cccd_file,
             "KYC Form": kyc_file,
             "Proof of Address": addr_file
         }
 
-        # Nhận đủ 5 giá trị trả về từ hàm process_kyc_case
         res_tuple = process_kyc_case(files_dict)
         
         st.session_state["res_comp"] = res_tuple[0]
