@@ -168,31 +168,24 @@ def read_document(path: str):
 KEYWORDS = {
     DT_CCCD: [
         ("can cuoc cong dan", 3.0), ("cong hoa xa hoi chu nghia viet nam", 1.0), ("doc lap", 0.5),
-        ("ho va ten", 1.5), (r"re:ngay\W{0,3}thang\W{0,3}nam\W{0,3}sinh", 2.0),
-        ("gioi tinh", 1.5), ("quoc tich", 1.5), ("que quan", 1.5),
-        ("noi thuong tru", 2.0), ("co gia tri den", 1.5), (r"re:(?<!\d)\d{12}(?!\d)", 1.0),
+        ("ho va ten", 1.5), ("ngay sinh", 2.0), ("gioi tinh", 1.5), ("quoc tich", 1.5), 
+        ("que quan", 1.5), ("noi thuong tru", 2.0), ("co gia tri den", 1.5),
     ],
     DT_GXNDC: [
         ("giay xac nhan dia chi", 3.0), ("kinh gui", 1.0), ("ubnd", 1.0), ("toi ten la", 1.5),
         ("nguyen quan", 1.5), ("noi dang ky ho khau", 2.0), ("hien cu tru tai", 2.0),
-        ("dia chi cu", 1.5), (r"re:cmnd|cccd", 1.0), ("cong hoa xa hoi chu nghia viet nam", 1.0),
-        ("doc lap", 0.5), ("xac nhan", 1.0),
     ],
     DT_KYC: [
         ("thu thap thong tin kyc", 3.0), ("khach hang to chuc", 2.0), ("mau bieu 01b", 2.0),
         ("kyc", 1.5), ("techcombank", 1.0), ("msdn", 1.5), ("dia chi dat tru so", 2.0),
-        ("dia chi hoat dong kinh doanh", 1.5), ("loai hinh doanh nghiep", 1.5),
-        ("muc dich va ban chat", 2.0), ("san pham dich vu su dung", 1.5), ("thong tin chung", 0.5),
     ],
 }
 
 def _keyword_hit(text_n: str, kw: str) -> bool:
-    if kw.startswith("re:"):
-        return re.search(kw[3:], text_n) is not None
     if kw in text_n:
         return True
     if len(kw) >= 10 and HAS_RAPIDFUZZ:
-        return fuzz.partial_ratio(kw, text_n) >= 88
+        return fuzz.partial_ratio(kw, text_n) >= 80
     return False
 
 def classify_document(lines):
@@ -204,7 +197,7 @@ def classify_document(lines):
         scores[dt] = got / total if total > 0 else 0
     ranked = sorted(scores.items(), key=lambda x: -x[1])
     (best, s1), (_, s2) = ranked[0], ranked[1]
-    if s1 >= CLS_MIN_SCORE and (s1 - s2) >= CLS_MIN_MARGIN:
+    if s1 >= CLS_MIN_SCORE:
         return best, s1, scores
     return None, s1, scores
 
@@ -214,55 +207,49 @@ class FieldSpec:
     labels: list
     kind: str
     multiline: bool = False
-    fallback: str = ""
-    phrase: str = ""
 
-C = r"\s*[:;]?"
-STAR = r"\s*(?:\(\s*\*?\s*\))?"
+C = r"\s*[:;.-]?"
 
+# Cải tiến FIELD_SPECS mở rộng nhãn để bắt chuẩn xác hơn trên ảnh CCCD thực tế
 FIELD_SPECS = {
     DT_CCCD: [
-        FieldSpec("Số CCCD", [r"(?<![a-z])so\s*[:;.]\s*(?=[\s\dolidsb|]{3})"], "id_cccd", fallback="cccd12"),
-        FieldSpec("Họ và tên", [r"ho\s*va\s*ten" + C], "name", fallback="name_upper", phrase="ho va ten"),
-        FieldSpec("Ngày sinh", [r"ngay\s*[,.]?\s*thang\s*[,.]?\s*nam\s*sinh" + C, r"ngay\s*sinh" + C], "date", fallback="first_date", phrase="ngay thang nam sinh"),
-        FieldSpec("Giới tính", [r"gioi\s*tinh" + C], "gender", fallback="gender", phrase="gioi tinh"),
-        FieldSpec("Quốc tịch", [r"quoc\s*tich" + C], "nationality", fallback="nationality", phrase="quoc tich"),
-        FieldSpec("Quê quán", [r"que\s*quan" + C], "address", multiline=True, phrase="que quan"),
-        FieldSpec("Nơi thường trú", [r"noi\s*thuong\s*tru" + C], "address", multiline=True, phrase="noi thuong tru"),
-        FieldSpec("Ngày hết hạn", [r"co\s*gia\s*tri\s*den" + C, r"ngay\s*het\s*han" + C], "date", fallback="last_date", phrase="co gia tri den"),
+        FieldSpec("Số CCCD", [r"so\s*[:;.]?", r"(?<!\d)\d{12}(?!\d)"], "id_cccd"),
+        FieldSpec("Họ và tên", [r"ho\s*(?:va)?\s*ten", r"full\s*name"], "name"),
+        FieldSpec("Ngày sinh", [r"ngay\s*sinh", r"sinh\s*ngay", r"date\s*of\s*birth"], "date"),
+        FieldSpec("Giới tính", [r"gioi\s*tinh", r"sex", r"gender"], "gender"),
+        FieldSpec("Quốc tịch", [r"quoc\s*tich", r"nationality"], "nationality"),
+        FieldSpec("Quê quán", [r"que\s*quan", r"place\s*of\s*origin"], "address", multiline=True),
+        FieldSpec("Nơi thường trú", [r"noi\s*thuong\s*tru", r"thuong\s*tru", r"place\s*of\s*residence"], "address", multiline=True),
+        FieldSpec("Ngày hết hạn", [r"co\s*gia\s*tri\s*den", r"gia\s*tri\s*den", r"het\s*han"], "date"),
     ],
     DT_GXNDC: [
-        FieldSpec("Họ và tên", [r"toi\s*ten\s*la" + C, r"ho\s*va\s*ten" + C], "name"),
-        FieldSpec("Năm sinh", [r"\bnam\s*sinh" + C, r"ngay\s*sinh" + C], "year_or_date"),
-        FieldSpec("Giới tính", [r"gioi\s*tinh" + C], "gender"),
-        FieldSpec("Nguyên quán", [r"nguyen\s*quan" + C, r"que\s*quan" + C], "address", multiline=True),
-        FieldSpec("Số CMND/CCCD", [r"\b(?:so\s*)?(?:cmnd|cccd|cmt)(?:\s*/\s*(?:cmnd|cccd))?\s*(?:so\s*)?[:;]?"], "id_any"),
-        FieldSpec("Nơi đăng ký hộ khẩu", [r"noi\s*dang\s*ky\s*ho\s*khau(?:\s*thuong\s*tru)?" + C], "address", multiline=True),
-        FieldSpec("Hiện cư trú tại", [r"hien\s*cu\s*tru(?:\s*tai)?" + C, r"cho\s*o\s*hien\s*nay" + C], "address", multiline=True),
-        FieldSpec("Địa chỉ cũ", [r"dia\s*chi\s*cu" + C], "address", multiline=True),
+        FieldSpec("Họ và tên", [r"toi\s*ten\s*la", r"ho\s*va\s*ten"], "name"),
+        FieldSpec("Năm sinh", [r"nam\s*sinh", r"ngay\s*sinh"], "date"),
+        FieldSpec("Giới tính", [r"gioi\s*tinh"], "gender"),
+        FieldSpec("Nguyên quán", [r"nguyen\s*quan", r"que\s*quan"], "address", multiline=True),
+        FieldSpec("Số CMND/CCCD", [r"cmnd", r"cccd", r"so\s*so"], "id_any"),
+        FieldSpec("Nơi đăng ký hộ khẩu", [r"noi\s*dang\s*ky\s*ho\s*khau", r"ho\s*khau"], "address", multiline=True),
+        FieldSpec("Hiện cư trú tại", [r"hien\s*cu\s*tru", r"cho\s*o\s*hien\s*nay"], "address", multiline=True),
     ],
     DT_KYC: [
-        FieldSpec("Tên khách hàng", [r"ten\s*khach\s*hang" + STAR + r"\s*:", r"ten\s*khach\s*hang\s*\(\s*bao\s*gom[^)]*\)"], "name_org"),
-        FieldSpec("Số ID", [r"so\s*id" + STAR + C], "id_any"),
-        FieldSpec("Đơn vị", [r"don\s*vi\s*:"], "org"),
-        FieldSpec("Sản phẩm dịch vụ", [r"san\s*pham\s*dich\s*vu(?:\s*su\s*dung)?\s*:"], "text"),
-        FieldSpec("MST/Mã giấy phép", [r"msdn\s*,?\s*mst(?:\s*,?\s*so\s*giay\s*phep(?:\s*thanh\s*lap)?)?" + C], "tax"),
-        FieldSpec("Địa chỉ trụ sở", [r"dia\s*chi\s*(?:dat\s*)?tru\s*so(?:\s*chinh)?" + C], "address", multiline=True),
-        FieldSpec("Địa chỉ kinh doanh", [r"dia\s*chi\s*hoat\s*dong\s*kinh\s*doanh(?:\s*/\s*dia\s*chi\s*gui\s*thu)?" + C], "address", multiline=True),
-        FieldSpec("Thông tin liên hệ", [r"thong\s*tin\s*lien\s*he(?:\s*\([^)]*\))?" + C], "contact", multiline=True),
-        FieldSpec("Loại hình doanh nghiệp", [r"loai\s*hinh\s*doanh\s*nghiep" + STAR + C], "business_type"),
-        FieldSpec("Mục đích quan hệ", [r"muc\s*dich\s*va\s*ban\s*chat(?:\s*thiet\s*lap\s*quan\s*he)?" + STAR + C], "text", multiline=True),
+        FieldSpec("Tên khách hàng", [r"ten\s*khach\s*hang"], "name"),
+        FieldSpec("Số ID", [r"so\s*id", r"ma\s*so"], "id_any"),
+        FieldSpec("Đơn vị", [r"don\s*vi"], "org"),
+        FieldSpec("MST/Mã giấy phép", [r"msdn", r"mst", r"giay\s*phep"], "tax"),
+        FieldSpec("Địa chỉ trụ sở", [r"dia\s*chi\s*tru\s*so", r"tru\s*so"], "address", multiline=True),
+        FieldSpec("Địa chỉ kinh doanh", [r"dia\s*chi\s*hoat\s*dong", r"kinh\s*doanh"], "address", multiline=True),
+        FieldSpec("Loại hình doanh nghiệp", [r"loai\s*hinh"], "text"),
+        FieldSpec("Mục đích quan hệ", [r"muc\s*dich"], "text"),
     ],
 }
 
 STOP_LABELS = {
     DT_CCCD: [],
-    DT_GXNDC: [r"cap\s*ngay", r"noi\s*cap", r"kinh\s*gui", r"nay\s*toi\s*lam\s*don", r"xin\s*chan\s*thanh", r"xac\s*nhan\s*cua", r"nguoi\s*lam\s*don"],
-    DT_KYC: [r"ngay\s*cap\s*nhat", r"website", r"linh\s*vuc\s*hoat\s*dong\s*kinh\s*doanh", r"ngay\s*thanh\s*lap\s*doanh\s*nghiep", r"dang\s*ky\s*lan\s*dau", r"nguoi\s*tai", r"ma\s*hieu", r"ngay\s*tai"],
+    DT_GXNDC: [r"cap\s*ngay", r"noi\s*cap", r"kinh\s*gui"],
+    DT_KYC: [r"website", r"ngay\s*thanh\s*lap"],
 }
 
 DATE_RE = re.compile(r"(?<!\d)(\d{1,2})\s*[/\\.-]\s*(\d{1,2})\s*[/\\.-]\s*(\d{4})(?!\d)")
-YEAR_RE = re.compile(r"(?<!\d)(19\s*?\d{2}|20\s*?\d{2})(?!\d)")
 DIGIT_FIX = str.maketrans({"O": "0", "o": "0", "D": "0", "Q": "0", "I": "1", "l": "1", "|": "1", "i": "1", "S": "5", "s": "5", "B": "8", "Z": "2", "z": "2", "G": "6"})
 
 def norm_date(t: str):
@@ -294,11 +281,9 @@ def normalize_value(kind: str, raw: str, is_image: bool) -> str:
         return norm_date(t) or t
     if kind == "gender":
         n = norm(t)
-        if "nam" in n:
-            return "Nam"
-        if "nu" in n:
-            return "Nữ"
-        return ""
+        if "nam" in n: return "Nam"
+        if "nu" in n: return "Nữ"
+        return t
     if kind == "nationality":
         return "Việt Nam" if "viet nam" in norm(t) else t
     if kind == "name":
@@ -314,7 +299,7 @@ class Hit:
     start: int
     end: int
 
-def find_label_hits(lines, specs, stops, is_image=False):
+def find_label_hits(lines, specs, stops):
     hits = []
     for li, ln in enumerate(lines):
         n = norm(ln.text)
@@ -322,10 +307,7 @@ def find_label_hits(lines, specs, stops, is_image=False):
             for rank, pat in enumerate(sp.labels):
                 for m in re.finditer(pat, n):
                     hits.append(Hit(sp.name, rank, li, m.start(), m.end()))
-        for pat in stops:
-            for m in re.finditer(pat, n):
-                hits.append(Hit(None, 0, li, m.start(), m.end()))
-    hits.sort(key=lambda h: (h.line, h.start, -(h.end - h.start)))
+    hits.sort(key=lambda h: (h.line, h.start))
     kept = []
     for h in hits:
         if kept and kept[-1].line == h.line and h.start < kept[-1].end:
@@ -333,29 +315,29 @@ def find_label_hits(lines, specs, stops, is_image=False):
         kept.append(h)
     return kept
 
+# Hàm quét thông minh tìm giá trị ở dòng ngang hoặc quét sâu 3 dòng bên dưới
 def extract_value(lines, kept, hit, spec, is_image):
     ln = lines[hit.line]
     same = [h for h in kept if h.line == hit.line and h.start >= hit.end]
     end = same[0].start if same else len(ln.text)
     val = ln.text[hit.end:end].strip()
-# Nếu dòng ngay bên cạnh trống hoặc ngắn, tự động quét sâu hơn 2-3 dòng tiếp theo để tìm dữ liệu khớp kiểu dữ liệu (spec.kind)
+    
+    # Nếu dòng ngang không có giá trị, tự động vét cạn 3 dòng bên dưới
     if not val and is_image:
         for offset in range(1, 4):
-            target_line_idx = hit.line + offset
-            if target_line_idx < len(lines):
-                candidate_text = lines[target_line_idx].text.strip()
-                # Kiểm tra xem dòng đó có phải là một nhãn khác không
-                is_another_label = any(h.line == target_line_idx for h in kept)
-                if not is_another_label and candidate_text:
-                    # Nếu tìm thấy dữ liệu thô hợp lý, gán vào
-                    val = candidate_text
+            target_idx = hit.line + offset
+            if target_idx < len(lines):
+                cand = lines[target_idx].text.strip()
+                is_label = any(h.line == target_idx for h in kept)
+                if not is_label and cand:
+                    val = cand
                     break
-                    
     return val
 
 def extract_fields(lines, doc_type, is_image):
-    specs, stops = FIELD_SPECS[doc_type], STOP_LABELS[doc_type]
-    kept = find_label_hits(lines, specs, stops, is_image)
+    specs = FIELD_SPECS.get(doc_type, [])
+    stops = STOP_LABELS.get(doc_type, [])
+    kept = find_label_hits(lines, specs, stops)
     results = []
     for sp in specs:
         value = ""
