@@ -1615,6 +1615,8 @@ def process_kyc_case(files_dict):
     if len(attention_flags) == 0:
         attention_flags.append("✅ Không phát hiện cờ rủi ro nghiêm trọng.")
 
+    attention_text = "\n\n".join([f"### {flag}" for flag in attention_flags])
+
     # Workflow Recommendation
     if not is_complete:
         workflow_rec = "📩 Request more information"
@@ -1764,55 +1766,4 @@ elif "Trích xuất tài liệu" in menu_choice:
     with c2: kyc_file = st.file_uploader("📝 KYC Form", type=["jpg", "png", "jpeg", "pdf", "docx"])
     with c3: addr_file = st.file_uploader("🏠 Proof of Address", type=["jpg", "png", "jpeg", "pdf", "docx"])
     
-    run_analyze = st.button("🔍 PHÂN TÍCH TOÀN BỘ HỒ SƠ KYC", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    if run_analyze:
-        files_dict = {
-            "CCCD / Passport": cccd_file,
-            "KYC Form": kyc_file,
-            "Proof of Address": addr_file
-        }
-
-        res_tuple = process_kyc_case(files_dict)
-        
-        st.session_state["res_comp"] = res_tuple[0]
-        st.session_state["res_mismatch"] = res_tuple[1]
-        st.session_state["res_conf"] = res_tuple[2]
-        st.session_state["res_attn"] = res_tuple[3]
-        st.session_state["res_summ"] = res_tuple[4]
-        
-        st.success("✅ Đã phân tích hồ sơ thành công! Hãy chuyển sang trang 'Báo cáo KYC & Cờ rủi ro' để xem chi tiết.")
-
-# --- TAB 2 & 3: BÁO CÁO KYC & CỜ RỦI RO ---
-elif "Báo cáo KYC" in menu_choice:
-    st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("📋 Báo cáo Đánh giá Rủi ro & Xác minh Hồ sơ")
-    
-    if "res_summ" in st.session_state:
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.markdown("### 🔍 Kiểm tra tính toàn vẹn & Đối chiếu")
-            st.info(st.session_state["res_comp"])
-            st.warning(st.session_state["res_mismatch"])
-        with col_b:
-            st.markdown("### 🎯 Độ tin cậy & Cờ rủi ro")
-            st.metric(label="Overall Confidence Score", value=st.session_state["res_conf"])
-            st.error(st.session_state["res_attn"])
-        
-        st.markdown("---")
-        st.markdown("### 📊 Tổng hợp KYC Summary")
-        st.markdown(st.session_state["res_summ"])
-    else:
-        st.info("ℹ️ Chưa có dữ liệu phân tích. Vui lòng vào trang **Trích xuất tài liệu (OCR)** để tải tệp và bấm phân tích trước.")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# --- TAB 4: HỒ SƠ KHÁCH HÀNG ---
-elif "Hồ sơ khách hàng" in menu_choice:
-    st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("👥 Danh sách Hồ sơ Khách hàng")
-    if "res_summ" in st.session_state:
-        st.write("Trạng thái hồ sơ gần nhất: **Đã xử lý thành công qua hệ thống Document AI**")
-    else:
-        st.caption("Chưa có hồ sơ nào được ghi nhận trong phiên làm việc.")
-    st.markdown('</div>', unsafe_allow_html=True)
+    run_analyze = st.button("
