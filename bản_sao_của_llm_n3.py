@@ -1466,20 +1466,18 @@ import tempfile
 import os
 
 # ====================================================================
-# 1. CÁC HÀM XỬ LÝ LÕI (PIPELINE LOGIC TỪ CODE GỐC CỦA NHÓM)
+# 1. CÁC HÀM XỬ LÝ LÕI (PIPELINE LOGIC)
 # ====================================================================
 
 def calculate_blur_score(image_np) -> float:
-    """Đánh giá độ nét của ảnh bằng thuật toán Laplacian"""
     if image_np is None:
-        return 0.5 # Giá trị mặc định nếu là file word/pdf
+        return 0.5 
     gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
     variance = cv2.Laplacian(gray, cv2.CV_64F).var()
     score = min(variance / 100.0, 1.0)
     return round(score, 2)
 
 def mock_vision_model() -> dict:
-    """Mô phỏng phân loại và bóc tách dữ liệu từ Vision LLM"""
     return {
         "document_type": "CCCD",
         "raw_fields": {
@@ -1491,7 +1489,6 @@ def mock_vision_model() -> dict:
     }
 
 def apply_validation_rules(field_name: str, value: str) -> float:
-    """Ràng buộc quy tắc (Validation Rules)"""
     if field_name == "document_number":
         return 1.0 if re.match(r"^\d{12}$", value) else 0.2
     elif field_name == "date_of_birth":
@@ -1501,12 +1498,10 @@ def apply_validation_rules(field_name: str, value: str) -> float:
     return 1.0
 
 def calculate_final_confidence(model_conf: float, rule_score: float, blur_score: float) -> float:
-    """Tính điểm tin cậy tổng hợp dựa trên trọng số"""
     final_score = (model_conf * 0.5) + (rule_score * 0.3) + (blur_score * 0.2)
     return round(final_score, 2)
 
 def process_document(file_path_or_image):
-    """Hàm Main xử lý luồng từ file/ảnh sang JSON"""
     if file_path_or_image is None:
         return "Lỗi: Chưa tải file", {"error": "Vui lòng tải tài liệu lên!"}
 
@@ -1537,7 +1532,6 @@ def process_document(file_path_or_image):
     return doc_type, response_payload
 
 def process_kyc_case(files_dict):
-    """Xử lý bộ hồ sơ KYC đa định dạng (Ảnh, Word, PDF)"""
     results = {}
     missing_documents = []
 
@@ -1559,7 +1553,8 @@ def process_kyc_case(files_dict):
             results[doc_name] = None
 
     # Completeness Check
-    if len(missing_documents) == 0:
+    is_complete = len(missing_documents) == 0
+    if is_complete:
         completeness_text = "✅ **COMPLETE**\n\nĐã nhận đủ 3 loại tài liệu bắt buộc."
     else:
         completeness_text = "⚠️ **INCOMPLETE**\n\nTài liệu thiếu:\n" + "\n".join([f"- {doc}" for doc in missing_documents])
@@ -1590,9 +1585,10 @@ def process_kyc_case(files_dict):
                 else:
                     mismatch_list.append(field)
 
+    has_mismatch = len(mismatch_list) > 0
     if len(extracted_documents) < 2:
         mismatch_text = "⚠️ Chưa đủ tài liệu để cross-check."
-    elif len(mismatch_list) == 0:
+    elif not has_mismatch:
         mismatch_text = f"✅ **NO MISMATCH DETECTED**\n\nKhớp {match_count}/{check_count} trường."
     else:
         mismatch_text = "⚠️ **MISMATCH DETECTED**\n\n" + "\n".join([f"- {f}" for f in mismatch_list])
@@ -1610,9 +1606,9 @@ def process_kyc_case(files_dict):
 
     # Attention Flags
     attention_flags = []
-    if len(missing_documents) > 0:
+    if not is_complete:
         attention_flags.append(f"📄 Thiếu tài liệu: {', '.join(missing_documents)}")
-    if len(mismatch_list) > 0:
+    if has_mismatch:
         attention_flags.append(f"🔎 Phát hiện mismatch: {', '.join(mismatch_list)}")
     if overall_confidence < 0.70:
         attention_flags.append("🎯 Confidence score thấp → Khuyến nghị nhân viên kiểm tra.")
@@ -1620,18 +1616,21 @@ def process_kyc_case(files_dict):
         attention_flags.append("✅ Không phát hiện cờ rủi ro nghiêm trọng.")
 
     # Workflow Recommendation
-    if len(missing_documents) > 0:
+    if not is_complete:
         workflow_rec = "📩 Request more information"
-    elif len(mismatch_list) > 0 or overall_confidence < 0.70:
+    elif has_mismatch or overall_confidence < 0.70:
         workflow_rec = "👤 Manual review"
     else:
         workflow_rec = "✅ Accept"
 
+    comp_status = "Complete" if is_complete else "Incomplete"
+    mismatch_status = "Mismatch detected" if has_mismatch else "No mismatch detected"
+
     summary = f"""
 ### 📋 Hồ sơ: {3 - len(missing_documents)}/3 tài liệu
-- **Completeness:** {"Complete" if len(missing_documents) == 0 else "Incomplete"}
+- **Completeness:** {comp_status}
 - **Overall Confidence:** {confidence_text}
-- **Cross-document Check:** {"Mismatch detected" if len(mismatch_list) > 0 else "No mismatch detected"}
+- **Cross-document Check:** {mismatch_status}
 
 ### 🤖 Đề xuất xử lý (Workflow): **{workflow_rec}**
 """
@@ -1640,7 +1639,7 @@ def process_kyc_case(files_dict):
 
 
 # ====================================================================
-# 2. GIAO DIỆN STREAMLIT (NỀN TỐI SANG TRỌNG - CHỮ SÁNG RÕ NÉT)
+# 2. GIAO DIỆN STREAMLIT
 # ====================================================================
 
 st.set_page_config(
