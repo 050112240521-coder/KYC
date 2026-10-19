@@ -1463,42 +1463,45 @@ import tempfile
 import os
 
 # ====================================================================
-# STREAMLIT UI: CLEAN & MINIMALIST FINTECH DESIGN
+# STREAMLIT UI: PREMIUM FINTECH (CRIMSON RED & ROYAL BLUE)
 # ====================================================================
 
 st.set_page_config(
-    page_title="IDP & Intelligent KYC Engine", 
+    page_title="Smart KYC & IDP Engine — Executive Edition", 
     layout="wide", 
     page_icon="🛡️"
 )
 
-# Inject Custom CSS tối giản, sang trọng
+# Custom CSS: Phối màu Đỏ Đô - Xanh Dương - Trắng Sáng
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
     html, body, [class*="css"] {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* Nền ứng dụng tối giản, chiều sâu nhẹ */
+    /* Nền chính Gradient Đỏ Đô sâu kết hợp Xanh Đêm */
     .stApp {
-        background-color: #0b0f17 !important;
-        color: #e2e8f0;
+        background: radial-gradient(circle at 10% 10%, rgba(159, 18, 57, 0.2) 0%, transparent 45%),
+                    radial-gradient(circle at 90% 85%, rgba(37, 99, 235, 0.18) 0%, transparent 45%),
+                    #0b0d14 !important;
+        color: #f8fafc;
     }
 
-    /* Top Brand Bar */
+    /* Top Navigation Bar */
     .top-bar {
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 16px 28px;
-        background: #111827;
-        border-bottom: 1px solid #1f2937;
-        margin: -60px -60px 25px -60px;
+        background: rgba(23, 15, 26, 0.75);
+        border-bottom: 1px solid rgba(225, 29, 72, 0.25);
+        backdrop-filter: blur(12px);
+        margin: -60px -60px 30px -60px;
     }
     .brand-title {
-        font-size: 18px;
+        font-size: 19px;
         font-weight: 700;
         color: #ffffff;
         letter-spacing: -0.3px;
@@ -1506,74 +1509,99 @@ st.markdown("""
         align-items: center;
         gap: 10px;
     }
+    .brand-title span.red-accent {
+        color: #f43f5e;
+    }
     .brand-badge {
         font-size: 11px;
         font-weight: 600;
-        background: rgba(59, 130, 246, 0.12);
+        background: rgba(37, 99, 235, 0.18);
         color: #60a5fa;
-        padding: 3px 10px;
+        padding: 4px 10px;
         border-radius: 20px;
-        border: 1px solid rgba(59, 130, 246, 0.25);
+        border: 1px solid rgba(59, 130, 246, 0.3);
     }
 
-    /* Banner giới thiệu dự án */
+    /* Banner chính */
     .hero-title {
-        font-size: 32px;
+        font-size: 34px;
         font-weight: 700;
         color: #ffffff;
         letter-spacing: -0.5px;
-        margin-bottom: 8px;
+        line-height: 1.25;
+        margin-bottom: 10px;
+    }
+    .hero-title span.highlight-red {
+        background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .hero-title span.highlight-blue {
+        background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
     .hero-sub {
         font-size: 14px;
-        color: #9ca3af;
+        color: #cbd5e1;
         line-height: 1.6;
-        margin-bottom: 25px;
+        margin-bottom: 30px;
+        max-width: 850px;
     }
 
-    /* Custom Streamlit Tabs dạng Button tối giản */
+    /* Custom Streamlit Tabs dạng Pill màu Đỏ Đô / Xanh */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background-color: #111827;
+        gap: 10px;
+        background-color: rgba(18, 16, 26, 0.8);
         padding: 6px;
         border-radius: 12px;
-        border: 1px solid #1f2937;
+        border: 1px solid rgba(225, 29, 72, 0.2);
     }
     .stTabs [data-baseweb="tab"] {
-        height: 40px;
+        height: 42px;
         border-radius: 8px;
-        color: #9ca3af;
+        color: #94a3b8;
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 600;
         border: none !important;
-        padding: 0 18px;
+        padding: 0 20px;
     }
     .stTabs [aria-selected="true"] {
-        background-color: #2563eb !important;
+        background: linear-gradient(135deg, #be123c 0%, #9f1239 100%) !important;
         color: #ffffff !important;
-        font-weight: 600;
+        box-shadow: 0 4px 14px rgba(190, 18, 60, 0.35);
     }
 
-    /* Style cho ô Upload file & Nút bấm */
+    /* Khung Upload & Nút bấm chính */
     [data-testid="stFileUploadDropzone"] {
-        background: #111827 !important;
-        border: 1px dashed #374151 !important;
+        background: rgba(18, 20, 32, 0.7) !important;
+        border: 1.5px dashed rgba(37, 99, 235, 0.35) !important;
         border-radius: 12px !important;
     }
     [data-testid="stFileUploadDropzone"]:hover {
-        border-color: #3b82f6 !important;
+        border-color: #f43f5e !important;
     }
     .stButton > button {
-        background: #2563eb;
+        background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
         color: #ffffff;
         font-weight: 600;
         border-radius: 8px;
         border: none;
-        padding: 10px 20px;
-        transition: all 0.15s ease;
+        padding: 10px 22px;
+        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+        transition: all 0.2s ease;
     }
     .stButton > button:hover {
-        background: #1d4ed8;
+        background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(225, 29, 72, 0.45);
+    }
+
+    /* Khung Info & Alert */
+    .stAlert {
+        border-radius: 10px;
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        border: 1px solid rgba(59, 130, 246, 0.3) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1582,23 +1610,27 @@ st.markdown("""
 st.markdown("""
 <div class="top-bar">
     <div class="brand-title">
-        🛡️ Smart KYC Engine <span class="brand-badge">IDP & Document AI</span>
+        <span class="red-accent">🛡️</span> Smart KYC Engine <span class="brand-badge">Document AI</span>
     </div>
-    <div style="font-size: 13px; color: #10b981; font-weight: 500;">
-        ● System Operational
+    <div style="font-size: 13px; color: #34d399; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+        <span style="height: 8px; width: 8px; background-color: #34d399; border-radius: 50%; display: inline-block;"></span> System Ready
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# Header & Mô tả dự án
-st.markdown('<div class="hero-title">Hệ thống Xử lý Tài liệu Thông minh & Báo cáo KYC</div>', unsafe_allow_html=True)
+# Tiêu đề & Mô tả dự án
+st.markdown("""
+<div class="hero-title">
+    Hệ thống Xử lý Tài liệu Thông minh <br>
+    <span class="highlight-red">& Báo cáo Kiểm tra KYC</span> <span class="highlight-blue">Tự động</span>
+</div>
+""", unsafe_allow_html=True)
+
 st.markdown(
     '<div class="hero-sub">Tải lên <b>ảnh CCCD</b>, <b>Giấy xác nhận địa chỉ (.docx)</b>, <b>Form KYC (.docx)</b> — '
-    'hệ thống tự phân loại, trích xuất thông tin, đối chiếu chéo và tổng hợp <b>KYC Summary</b> tự động.</div>', 
+    'hệ thống tự phân loại, trích xuất thông tin bằng OCR, đối chiếu chéo và tổng hợp <b>KYC Summary</b> tự động.</div>', 
     unsafe_allow_html=True
 )
-
-st.markdown("<br>", unsafe_allow_html=True)
 
 # Tabs chức năng chính
 tab1, tab2, tab3 = st.tabs([
@@ -1620,10 +1652,10 @@ with tab1:
             type=["jpg", "jpeg", "png", "webp", "bmp", "docx"],
             key="t1_files"
         )
-        run_btn = st.button("🚀 Phân tích tài liệu", use_container_width=True)
+        run_btn = st.button("🚀 Bắt đầu Phân tích AI", use_container_width=True)
         
     with c_right:
-        st.subheader("📊 Kết quả phân loại & Trích xuất")
+        st.subheader("📊 Kết quả Phân loại & Trích xuất")
         sum_out_area = st.empty()
         detail_out_area = st.empty()
 
@@ -1673,7 +1705,7 @@ with tab2:
             format_func=lambda x: "Tách hồ sơ theo tiền tố tên file (HS1_..., HS2_...)" if x == "prefix" else "Gộp tất cả file vào 1 hồ sơ",
             key="t2_mode"
         )
-        cc_btn = st.button("🔎 Đối chiếu hồ sơ", use_container_width=True)
+        cc_btn = st.button("🔎 Bắt đầu Đối chiếu Hồ sơ", use_container_width=True)
         
     with c_right:
         cc_html_area = st.empty()
@@ -1722,6 +1754,9 @@ with tab3:
         html_out_p4_area = st.empty()
         html_out_p4_area.info("👉 Bấm nút 'Tự động tổng hợp KYC Summary' để hiển thị báo cáo.")
 
+    if btn_p4:
+        with st.spinner("⚡ Đang tổng hợp báo cáo rủi ro KYC..."):
+            html_out_p4_area.success("✅ Đã tạo thành công báo cáo KYC Summary!")
     if btn_p4:
         with st.spinner("⚡ Đang tổng hợp báo cáo rủi ro KYC..."):
             html_out_p4_area.success("✅ Đã tạo thành công báo cáo KYC Summary!")
