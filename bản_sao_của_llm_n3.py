@@ -1463,7 +1463,7 @@ import tempfile
 import os
 
 # ====================================================================
-# STREAMLIT UI: SIDEBAR DASHBOARD (CRIMSON RED & CLEAN WHITE)
+# STREAMLIT UI: GOOGLE AI STUDIO STYLE (CRIMSON SIDEBAR & WHITE BODY)
 # ====================================================================
 
 st.set_page_config(
@@ -1473,7 +1473,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS chuẩn, tinh gọn, phối màu Đỏ Đô - Xanh - Trắng sáng
+# Custom CSS ép giao diện khớp hoàn toàn 100% với ảnh mẫu
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -1482,125 +1482,127 @@ st.markdown("""
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* Nền chính bên phải màu trắng sáng tinh tế */
+    /* 1. NỀN NỘI DUNG CHÍNH (TRẮNG SÁNG CAO CẤP) */
     .stApp {
         background-color: #f8fafc !important;
         color: #0f172a !important;
     }
 
-    /* Sidebar bên trái màu Đỏ Đô / Xanh sẫm sang trọng */
+    /* 2. SIDEBAR BÊN TRÁI (TÔNG ĐỎ ĐÔ & XANH ĐÊM) */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #380a10 0%, #1a060a 60%, #0f172a 100%) !important;
+        background: linear-gradient(180deg, #380a10 0%, #1a060a 60%, #0b0f19 100%) !important;
         border-right: 1px solid rgba(225, 29, 72, 0.2) !important;
     }
     
     [data-testid="stSidebar"] > div:first-child {
-        padding-top: 20px;
+        padding-top: 15px;
     }
 
+    /* Logo Brand trong Sidebar */
     .sidebar-brand {
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 10px 15px 25px 15px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 20px;
+        padding: 10px 10px 20px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 15px;
     }
     .brand-icon {
-        background: linear-gradient(135deg, #e11d48 0%, #2563eb 100%);
+        background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
         color: #ffffff;
         font-weight: 800;
-        font-size: 16px;
-        padding: 8px 12px;
-        border-radius: 10px;
+        font-size: 15px;
+        padding: 7px 11px;
+        border-radius: 8px;
     }
     .brand-text {
         color: #ffffff;
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 700;
         line-height: 1.2;
     }
     .brand-sub {
-        font-size: 12px;
+        font-size: 11px;
         color: #38bdf8;
         font-weight: 500;
     }
 
-    /* Radio button menu trong Sidebar */
+    /* Radio Menu trong Sidebar giống hệt mẫu */
     [data-testid="stSidebar"] .stRadio > label {
-        color: #94a3b8 !important;
-        font-size: 11px !important;
+        color: #64748b !important;
+        font-size: 10.5px !important;
         font-weight: 700 !important;
         letter-spacing: 0.8px !important;
-        margin-bottom: 10px !important;
+        margin-bottom: 8px !important;
     }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] {
-        gap: 8px;
+        gap: 6px;
     }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
         border-radius: 10px;
-        padding: 12px 16px;
-        color: #e2e8f0 !important;
-        font-weight: 600;
-        font-size: 13.5px;
+        padding: 10px 14px;
+        color: #cbd5e1 !important;
+        font-weight: 500;
+        font-size: 13px;
         transition: all 0.2s ease;
         cursor: pointer;
     }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label:hover {
-        background: rgba(225, 29, 72, 0.2);
-        border-color: rgba(225, 29, 72, 0.4);
+        background: rgba(225, 29, 72, 0.15);
+        border-color: rgba(225, 29, 72, 0.3);
+        color: #ffffff !important;
     }
 
-    /* Top Header thanh điều hướng nội dung */
+    /* 3. TOP BAR PHÍA TRÊN NỘI DUNG */
     .top-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         background: #ffffff;
-        padding: 16px 24px;
+        padding: 14px 22px;
         border-radius: 12px;
         border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        margin-bottom: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        margin-bottom: 20px;
     }
     .breadcrumb {
-        font-size: 12px;
+        font-size: 11px;
         color: #64748b;
         font-weight: 500;
     }
     .page-title-text {
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 700;
         color: #0f172a;
     }
 
-    /* Khung thẻ chứa nội dung chính */
+    /* 4. KHUNG THẺ NỘI DUNG (CARD TRẮNG) */
     .content-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
         border-radius: 16px;
-        padding: 30px;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);
-        margin-bottom: 24px;
+        padding: 28px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        margin-bottom: 20px;
     }
 
-    /* Nút bấm Đỏ Đô sang trọng */
+    /* Nút bấm chính Đỏ Đô */
     .stButton > button {
         background: linear-gradient(135deg, #be123c 0%, #9f1239 100%) !important;
         color: #ffffff !important;
         font-weight: 600 !important;
         border-radius: 8px !important;
         border: none !important;
-        padding: 10px 20px !important;
-        box-shadow: 0 4px 12px rgba(190, 18, 60, 0.25) !important;
+        padding: 9px 18px !important;
+        box-shadow: 0 4px 12px rgba(190, 18, 60, 0.2) !important;
     }
     .stButton > button:hover {
         background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
     }
 
-    /* Khung tải tệp lên */
+    /* Ô Tải tệp lên */
     [data-testid="stFileUploadDropzone"] {
         background: #f8fafc !important;
         border: 1.5px dashed #cbd5e1 !important;
@@ -1627,6 +1629,7 @@ with st.sidebar:
     menu_choice = st.radio(
         "QUY TRÌNH THẨM ĐỊNH KYC",
         options=[
+            "🏠 0. Tổng quan Dashboard",
             "📊 1. Trích xuất tài liệu (OCR)",
             "🔍 2. Đối chiếu hồ sơ (Cross-check)",
             "🛡️ 3. Báo cáo KYC & Cờ rủi ro"
@@ -1635,35 +1638,72 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    st.caption("⚙️ Engine: **Python & EasyOCR**")
-    st.caption("🟢 Trạng thái: **Sẵn sàng**")
+    # Khung cấu hình backend ở chân sidebar giống ảnh mẫu
+    st.markdown("""
+    <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; font-size: 12px; color: #94a3b8;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="color: #fff; font-weight: 600;">⚙️ Backend Python</span>
+            <span style="color: #fbbf24; font-size: 11px;">● Cấu hình</span>
+        </div>
+        <div style="font-size: 11px; color: #64748b;">🔄 Làm mới phiên làm việc</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("<div style='font-size: 11px; color: #64748b; margin-top: 10px; padding: 0 4px;'>Công cụ hỗ trợ quy trình thẩm định hồ sơ theo thuật toán IDP & Cross-check của dự án.</div>", unsafe_allow_html=True)
 
 
 # ---------------- NỘI DUNG CHÍNH BÊN PHẢI ----------------
 title_map = {
-    "📊 1. Trích xuất tài liệu (OCR)": "Trích xuất tài liệu (OCR)",
-    "🔍 2. Đối chiếu hồ sơ (Cross-check)": "Đối chiếu hồ sơ (Cross-check)",
-    "🛡️ 3. Báo cáo KYC & Cờ rủi ro": "Báo cáo KYC & Cờ rủi ro"
+    "🏠 0. Tổng quan Dashboard": "Tổng quan Dashboard",
+    "📊 1. Trích xuất tài liệu (OCR)": "Trích xuất tài liệu (OCR) - CCCD, GXNĐC & Form KYC",
+    "🔍 2. Đối chiếu hồ sơ (Cross-check)": "Đối chiếu hồ sơ (Cross-check) & Kiểm tra số CCCD",
+    "🛡️ 3. Báo cáo KYC & Cờ rủi ro": "Báo cáo KYC & Cờ rủi ro (Completeness Check & Risk Score)"
 }
 current_title = title_map.get(menu_choice, "Tổng quan Dashboard")
 
 st.markdown(f"""
 <div class="top-header">
     <div>
-        <div class="breadcrumb">Trang chủ / Quy trình KYC</div>
+        <div class="breadcrumb">Trang chủ / Bảng điều khiển</div>
         <div class="page-title-text">{current_title}</div>
     </div>
-    <div>
-        <span style="background: rgba(37, 99, 235, 0.1); color: #2563eb; padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 13px;">
-            ● Nạp hồ sơ thực nghiệm
+    <div style="display: flex; gap: 10px;">
+        <span style="background: rgba(37, 99, 235, 0.08); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.2); padding: 5px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer;">
+            📋 Nạp hồ sơ thực nghiệm mẫu
+        </span>
+        <span style="background: rgba(245, 158, 11, 0.08); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); padding: 5px 12px; border-radius: 8px; font-weight: 600; font-size: 12px;">
+            ● Python API: Trực tuyến
         </span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 
+# --- PHẦN 0: TỔNG QUAN DASHBOARD ---
+if "0. Tổng quan Dashboard" in menu_choice:
+    st.markdown('<div class="content-card" style="text-align: center; padding: 40px 20px;">', unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #0f172a; font-weight: 700; margin-bottom: 10px;'>Chưa có hồ sơ nào được xử lý trong phiên làm việc</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #64748b; font-size: 14px; max-width: 600px; margin: 0 auto 25px auto;'>Hệ thống tuân thủ nguyên tắc không tạo số liệu giả. Hãy tải tài liệu thật để trích xuất OCR, đối chiếu chéo và sinh báo cáo KYC.</p>", unsafe_allow_html=True)
+    
+    col_b1, col_b2 = st.columns(2)
+    with col_b1:
+        st.markdown("""
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; text-align: left;">
+            <div style="font-weight: 700; color: #0f172a; margin-bottom: 5px;">01. Phân loại & OCR</div>
+            <div style="font-size: 13px; color: #64748b; margin-bottom: 10px;">Trích xuất đa dạng định dạng ảnh CCCD, Giấy xác nhận địa chỉ và Form KYC.</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_b2:
+        st.markdown("""
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; text-align: left;">
+            <div style="font-weight: 700; color: #0f172a; margin-bottom: 5px;">02. Đối chiếu chéo (Cross-check)</div>
+            <div style="font-size: 13px; color: #64748b; margin-bottom: 10px;">So khớp họ tên, số giấy tờ, ngày sinh, nơi thường trú và quy luật 12 số CCCD.</div>
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
 # --- PHẦN 1: TRÍCH XUẤT TÀI LIỆU (OCR) ---
-if "1. Trích xuất tài liệu" in menu_choice:
+elif "1. Trích xuất tài liệu" in menu_choice:
     st.markdown('<div class="content-card">', unsafe_allow_html=True)
     c_left, c_right = st.columns([1, 1.8])
     
