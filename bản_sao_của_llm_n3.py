@@ -1768,20 +1768,22 @@ elif "Trích xuất tài liệu" in menu_choice:
     run_analyze = st.button("🔍 PHÂN TÍCH TOÀN BỘ HỒ SƠ KYC", use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    if run_analyze:
+   if run_analyze:
         files_dict = {
             "CCCD / Passport": cccd_file,
             "KYC Form": kyc_file,
             "Proof of Address": addr_file
         }
 
-        comp, mismatch, conf, attn, summ = process_kyc_case(files_dict)
+        # Nhận đủ 5 giá trị trả về từ hàm process_kyc_case
+        res_tuple = process_kyc_case(files_dict)
         
-        st.session_state["res_comp"] = comp
-        st.session_state["res_mismatch"] = mismatch
-        st.session_state["res_conf"] = conf
-        st.session_state["res_attn"] = attn
-        st.session_state["res_summ"] = summ
+        st.session_state["res_comp"] = res_tuple[0]
+        st.session_state["res_mismatch"] = res_tuple[1]
+        st.session_state["res_conf"] = res_tuple[2]
+        st.session_state["res_attn"] = res_tuple[3]
+        st.session_state["res_summ"] = res_tuple[4]
+        
         st.success("✅ Đã phân tích hồ sơ thành công! Hãy chuyển sang trang 'Báo cáo KYC & Cờ rủi ro' để xem chi tiết.")
 
 # --- TAB 2 & 3: BÁO CÁO KYC & CỜ RỦI RO ---
