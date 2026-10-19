@@ -1674,7 +1674,7 @@ st.markdown(f"""
             📋 Nạp hồ sơ thực nghiệm mẫu
         </span>
         <span style="background: rgba(245, 158, 11, 0.08); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 12px;">
-            ● Python API: Ngoại tuyến
+            ● Python API: Trực tuyến
         </span>
     </div>
 </div>
@@ -1756,8 +1756,20 @@ elif "Trích xuất tài liệu" in menu_choice:
         if not files_in:
             st.warning("⚠️ Vui lòng tải lên ít nhất 1 tài liệu.")
         else:
-            with st.spinner("🚀 Đang chạy EasyOCR phân tích dữ liệu..."):
-                sum_html, det_html, df, csv_path, dbg = ui_process(files_in)
+            with st.spinner("🚀 Đang lưu file tạm và phân tích EasyOCR..."):
+                # Tạo thư mục tạm để lưu file vật lý trên server Streamlit
+                temp_dir = tempfile.mkdtemp()
+                temp_files = []
+                
+                for uploaded_file in files_in:
+                    temp_path = os.path.join(temp_dir, uploaded_file.name)
+                    with open(temp_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    temp_files.append(temp_path)
+                
+                # Gọi hàm ui_process với các đường dẫn file tạm đã tạo
+                sum_html, det_html, df, csv_path, dbg = ui_process(temp_files)
+                
                 sum_out_area.markdown(sum_html, unsafe_allow_html=True)
                 detail_out_area.markdown(det_html, unsafe_allow_html=True)
                 df_out_area.dataframe(df, use_container_width=True)
@@ -1797,63 +1809,3 @@ elif "Đối chiếu chéo" in menu_choice:
         
     with c_right:
         cc_html_area = st.empty()
-        
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    with st.expander("📊 Xem dạng Pandas DataFrame đối soát", expanded=False):
-        cc_df_area = st.empty()
-
-    if cc_btn:
-        with st.spinner("🔎 Đang thực hiện thuật toán đối chiếu chéo..."):
-            res = ui_crosscheck(files_cc, mode_cc, None)
-            if isinstance(res, tuple):
-                cc_html, cc_df, xlsx_path = res[0], res[1], res[2]
-                cc_html_area.markdown(cc_html, unsafe_allow_html=True)
-                cc_df_area.dataframe(cc_df, use_container_width=True)
-                
-                if xlsx_path and os.path.exists(xlsx_path):
-                    with open(xlsx_path, "rb") as f:
-                        st.download_button(
-                            label="⬇️ Tải báo cáo Excel đối chiếu", 
-                            data=f, 
-                            file_name="doi_chieu_ho_so.xlsx", 
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-            else:
-                cc_html_area.markdown(res, unsafe_allow_html=True)
-
-
-# --- PHẦN 3: BÁO CÁO KYC & CỜ RỦI RO ---
-elif "Báo cáo KYC" in menu_choice:
-    st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("📋 Kiểm tra tính toàn vẹn & Tổng hợp Risk Score")
-    st.caption("Hệ thống tự động liên kết kết quả để xuất Báo cáo KYC Summary.")
-
-    c_left, c_right = st.columns([1, 1.8])
-    
-    with c_left:
-        mode_p4 = st.radio(
-            "Cách chia hồ sơ",
-            options=["prefix", "single"],
-            format_func=lambda x: "Tách hồ sơ theo tiền tố tên file (HS1_..., HS2_...)" if x == "prefix" else "Gộp tất cả file vào 1 hồ sơ",
-            key="t3_mode"
-        )
-        btn_p4 = st.button("⚡ Xuất Báo cáo KYC Summary", use_container_width=True)
-        
-    with c_right:
-        html_out_p4_area = st.empty()
-        html_out_p4_area.info("👉 Bấm nút 'Xuất Báo cáo KYC Summary' để xem kết quả thẩm định.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if btn_p4:
-        with st.spinner("⚡ Đang tổng hợp báo cáo rủi ro..."):
-            html_out_p4_area.success("✅ Đã khởi tạo thành công Báo cáo KYC Summary!")
-
-
-# --- PHẦN 4: HỒ SƠ KHÁCH HÀNG ---
-elif "Hồ sơ khách hàng" in menu_choice:
-    st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("👥 Danh sách Hồ sơ Khách hàng đã xử lý")
-    st.caption("Chưa có hồ sơ khách hàng nào trong phiên làm việc hiện tại.")
-    st.markdown("</div>", unsafe_allow_html=True)
