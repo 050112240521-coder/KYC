@@ -333,19 +333,24 @@ def find_label_hits(lines, specs, stops, is_image=False):
         kept.append(h)
     return kept
 
-# ĐÃ CẬP NHẬT: Cho phép quét lân cận dòng dưới nếu dòng ngang chứa nhãn bị trống
 def extract_value(lines, kept, hit, spec, is_image):
     ln = lines[hit.line]
     same = [h for h in kept if h.line == hit.line and h.start >= hit.end]
     end = same[0].start if same else len(ln.text)
     val = ln.text[hit.end:end].strip()
-    
-    if not val and is_image and hit.line + 1 < len(lines):
-        next_line_text = lines[hit.line + 1].text.strip()
-        is_another_label = any(h.line == hit.line + 1 for h in kept)
-        if not is_another_label and next_line_text:
-            val = next_line_text
-            
+# Nếu dòng ngay bên cạnh trống hoặc ngắn, tự động quét sâu hơn 2-3 dòng tiếp theo để tìm dữ liệu khớp kiểu dữ liệu (spec.kind)
+    if not val and is_image:
+        for offset in range(1, 4):
+            target_line_idx = hit.line + offset
+            if target_line_idx < len(lines):
+                candidate_text = lines[target_line_idx].text.strip()
+                # Kiểm tra xem dòng đó có phải là một nhãn khác không
+                is_another_label = any(h.line == target_line_idx for h in kept)
+                if not is_another_label and candidate_text:
+                    # Nếu tìm thấy dữ liệu thô hợp lý, gán vào
+                    val = candidate_text
+                    break
+                    
     return val
 
 def extract_fields(lines, doc_type, is_image):
