@@ -1472,7 +1472,7 @@ import os
 def calculate_blur_score(image_np) -> float:
     """Đánh giá độ nét của ảnh bằng thuật toán Laplacian"""
     if image_np is None:
-        return 0.0
+        return 0.5 # Giá trị mặc định nếu là file word/pdf
     gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
     variance = cv2.Laplacian(gray, cv2.CV_64F).var()
     score = min(variance / 100.0, 1.0)
@@ -1505,12 +1505,12 @@ def calculate_final_confidence(model_conf: float, rule_score: float, blur_score:
     final_score = (model_conf * 0.5) + (rule_score * 0.3) + (blur_score * 0.2)
     return round(final_score, 2)
 
-def process_document(image):
-    """Hàm Main xử lý luồng từ ảnh sang JSON"""
-    if image is None:
-        return "Lỗi: Chưa tải ảnh", {"error": "Vui lòng tải ảnh tài liệu lên!"}
+def process_document(file_path_or_image):
+    """Hàm Main xử lý luồng từ file/ảnh sang JSON"""
+    if file_path_or_image is None:
+        return "Lỗi: Chưa tải file", {"error": "Vui lòng tải tài liệu lên!"}
 
-    blur_score = calculate_blur_score(image)
+    blur_score = calculate_blur_score(file_path_or_image if isinstance(file_path_or_image, np.ndarray) else None)
     vision_result = mock_vision_model()
     doc_type = vision_result["document_type"]
 
@@ -1536,287 +1536,29 @@ def process_document(image):
 
     return doc_type, response_payload
 
-def process_kyc_case(cccd_image, kyc_image, address_image):
-    """Xử lý bộ hồ sơ KYC 3 tài liệu"""
-    documents = {
-        "CCCD / Passport": cccd_image,
-        "KYC Form": kyc_image,
-        "Proof of Address": address_image
-    }
-
+def process_kyc_case(files_dict):
+    """Xử lý bộ hồ sơ KYC đa định dạng (Ảnh, Word, PDF)"""
     results = {}
     missing_documents = []
 
-    for doc_name, image in documents.items():
-        if image is None:
+    for doc_name, file_obj in files_dict.items():
+        if file_obj is None:
             missing_documents.append(doc_name)
 
-    for doc_name, image in documents.items():
-        if image is not None:
-            doc_type, result = process_document(image)
+    for doc_name, file_obj in files_dict.items():
+        if file_obj is not None:
+            # Xử lý linh hoạt định dạng file
+            if file_obj.name.endswith(('.jpg', '.jpeg', '.png', '.webp')):
+                file_bytes = np.asarray(bytearray(file_obj.read()), dtype=np.uint8)
+                img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+                doc_type, result = process_document(img)
+            else:
+                # Xử lý file .docx hoặc .pdf
+                doc_type, result = process_document("mock_path")
+            
             results[doc_name] = {"document_type": doc_type, "result": result}
         else:
             results[doc_name] = None
 
     # Completeness Check
-    if len(missing_documents) == 0:
-        completeness_text = "✅ COMPLETE\n\nĐã nhận đủ 3 loại tài liệu bắt buộc."
-    else:
-        completeness_text = "⚠️ INCOMPLETE\n\nTài liệu thiếu:\n" + "\n".join([f"- {doc}" for doc in missing_documents])
-
-    # Extracted data & Cross-check
-    extracted_documents = []
-    for doc_name, data in results.items():
-        if data is not None:
-            extracted_documents.append(data["result"].get("extracted_data", {}))
-
-    cross_check_fields = ["document_number", "full_name", "date_of_birth", "gender", "document_type"]
-    mismatch_list = []
-    match_count = 0
-    check_count = 0
-
-    if len(extracted_documents) >= 2:
-        for field in cross_check_fields:
-            if field == "document_type":
-                continue
-            values = []
-            for extracted in extracted_documents:
-                if field in extracted:
-                    values.append(str(extracted[field]["value"]).strip().lower())
-            if len(values) >= 2:
-                check_count += 1
-                if len(set(values)) == 1:
-                    match_count += 1
-                else:
-                    mismatch_list.append(field)
-
-    if len(extracted_documents) < 2:
-        mismatch_text = "⚠️ Chưa đủ tài liệu để cross-check."
-    elif len(mismatch_list) == 0:
-        mismatch_text = f"✅ NO MISMATCH DETECTED\n\nKhớp {match_count}/{check_count} trường."
-    else:
-        mismatch_text = "⚠️ MISMATCH DETECTED\n\n" + "\n".join([f"- {f}" for f in mismatch_list])
-
-    # Confidence calculation
-    confidence_values = []
-    for doc_name, data in results.items():
-        if data is not None:
-            extracted_data = data["result"].get("extracted_data", {})
-            for field_name, field_data in extracted_data.items():
-                confidence_values.append(field_data.get("confidence_score", 0))
-
-    overall_confidence = (sum(confidence_values) / len(confidence_values)) if len(confidence_values) > 0 else 0
-    confidence_text = f"{overall_confidence * 100:.0f}%"
-
-    # Attention Flags
-    attention_flags = []
-    if len(missing_documents) > 0:
-        attention_flags.append(f"📄 Thiếu tài liệu: {', '.join(missing_documents)}")
-    if len(mismatch_list) > 0:
-        attention_flags.append(f"🔎 Phát hiện mismatch: {', '.join(mismatch_list)}")
-    if overall_confidence < 0.70:
-        attention_flags.append("🎯 Confidence score thấp → Khuyến nghị nhân viên kiểm tra.")
-    if len(attention_flags) == 0:
-        attention_flags.append("✅ Không phát hiện cờ rủi ro nghiêm trọng.")
-
-    # Workflow Recommendation
-    if len(missing_documents) > 0:
-        workflow_rec = "📩 Request more information"
-    elif len(mismatch_list) > 0 or overall_confidence < 0.70:
-        workflow_rec = "👤 Manual review"
-    else:
-        workflow_rec = "✅ Accept"
-
-    summary = f"""
-### 📋 Hồ sơ: {3 - len(missing_documents)}/3 tài liệu
-- **Completeness:** {"Complete" if len(missing_documents) == 0 else "Incomplete"}
-- **Overall Confidence:** {confidence_text}
-- **Cross-document Check:** {"Mismatch detected" if len(mismatch_list) > 0 else "No mismatch detected"}
-
-### 🤖 Đề xuất xử lý (Workflow): **{workflow_rec}**
-"""
-
-    return completeness_text, mismatch_text, confidence_text, attention_text, summary
-
-
-# ====================================================================
-# 2. GIAO DIỆN STREAMLIT (UI LAYER - NỀN SÁNG, RÕ CHỮ)
-# ====================================================================
-
-st.set_page_config(
-    page_title="Intelligent KYC — Customer Onboarding", 
-    layout="wide", 
-    page_icon="🛡️",
-    initial_sidebar_state="expanded"
-)
-
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-
-    .stApp {
-        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
-        color: #0f172a !important;
-    }
-
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #4c0519 0%, #2e0813 60%, #0f172a 100%) !important;
-        border-right: 1px solid rgba(225, 29, 72, 0.25) !important;
-    }
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {
-        color: #f1f5f9 !important;
-        font-weight: 600;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        margin-bottom: 6px;
-    }
-
-    .sidebar-brand {
-        display: flex; align-items: center; gap: 14px; padding: 5px 10px 22px 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 20px;
-    }
-    .brand-icon-teal {
-        background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-        color: #ffffff; font-weight: 800; font-size: 16px; padding: 10px 14px; border-radius: 12px;
-    }
-    .brand-text-main { color: #ffffff; font-size: 17px; font-weight: 700; }
-    .brand-sub-teal { font-size: 12px; color: #fb7185; font-weight: 500; }
-    
-    .top-header, .content-card {
-        background: #ffffff !important; border-radius: 16px; padding: 28px;
-        border: 1px solid #cbd5e1; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px;
-        color: #0f172a !important;
-    }
-    .content-card h1, .content-card h2, .content-card h3, .content-card p, .content-card span, .content-card div {
-        color: #0f172a !important;
-    }
-    .page-title-text { font-size: 19px; font-weight: 700; color: #0f172a !important; }
-    .breadcrumb { font-size: 12px; color: #64748b; font-weight: 500; }
-
-    .stButton > button {
-        background: linear-gradient(135deg, #be123c 0%, #9f1239 100%) !important;
-        color: #ffffff !important; font-weight: 600 !important; border-radius: 10px !important; border: none !important;
-        padding: 10px 20px !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-menu_options = [
-    "🎛️ Tổng quan Dashboard",
-    "📄 Trích xuất tài liệu (OCR)",
-    "🔀 Đối chiếu chéo hồ sơ",
-    "🛡️ Báo cáo KYC & Cờ rủi ro",
-    "👥 Hồ sơ khách hàng"
-]
-
-if "current_page" not in st.session_state:
-    st.session_state["current_page"] = menu_options[0]
-
-with st.sidebar:
-    st.markdown("""
-    <div class="sidebar-brand">
-        <div class="brand-icon-teal">KYC</div>
-        <div>
-            <div class="brand-text-main">Intelligent KYC</div>
-            <div class="brand-sub-teal">Customer Onboarding</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    current_index = menu_options.index(st.session_state["current_page"]) if st.session_state["current_page"] in menu_options else 0
-    menu_choice = st.radio("QUY TRÌNH THẨM ĐỊNH KYC", options=menu_options, index=current_index)
-    st.session_state["current_page"] = menu_choice
-
-title_map = {
-    "🎛️ Tổng quan Dashboard": "Tổng quan Dashboard",
-    "📄 Trích xuất tài liệu (OCR)": "Trích xuất tài liệu (OCR) — CCCD, GXNĐC & Form KYC",
-    "🔀 Đối chiếu chéo hồ sơ": "Đối chiếu chéo hồ sơ — Cross-check & kiểm tra số CCCD",
-    "🛡️ Báo cáo KYC & Cờ rủi ro": "Báo cáo KYC & Cờ rủi ro — Completeness check & Risk score",
-    "👥 Hồ sơ khách hàng": "Danh sách Hồ sơ Khách hàng"
-}
-current_title = title_map.get(menu_choice, "Tổng quan Dashboard")
-
-st.markdown(f"""
-<div class="top-header">
-    <div>
-        <div class="breadcrumb">Trang chủ / Bảng điều khiển</div>
-        <div class="page-title-text">{current_title}</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# --- TAB 0: TỔNG QUAN ---
-if "Tổng quan Dashboard" in menu_choice:
-    st.markdown('<div class="content-card" style="text-align: center;">', unsafe_allow_html=True)
-    st.markdown("<h3>Hệ thống Thẩm định Hồ sơ Khách hàng Tự động</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #64748b;'>Chọn chức năng ở menu bên trái hoặc bấm nút bên dưới để bắt đầu quy trình phân tích KYC.</p>", unsafe_allow_html=True)
-    if st.button("🚀 Bắt đầu Phân tích Hồ sơ Ngay", use_container_width=True):
-        st.session_state["current_page"] = "📄 Trích xuất tài liệu (OCR)"
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# --- TAB 1: TRÍCH XUẤT TÀI LIỆU (OCR) ---
-elif "Trích xuất tài liệu" in menu_choice:
-    st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("📥 Tải lên 3 tài liệu định danh bắt buộc")
-    c1, c2, c3 = st.columns(3)
-    with c1: cccd_file = st.file_uploader("📄 CCCD / Passport", type=["jpg", "png", "jpeg"])
-    with c2: kyc_file = st.file_uploader("📝 KYC Form", type=["jpg", "png", "jpeg"])
-    with c3: addr_file = st.file_uploader("🏠 Proof of Address", type=["jpg", "jpeg", "png"])
-    
-    run_analyze = st.button("🔍 PHÂN TÍCH TOÀN BỘ HỒ SƠ KYC", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    if run_analyze:
-        def load_img(uploaded):
-            if uploaded is not None:
-                file_bytes = np.asarray(bytearray(uploaded.read()), dtype=np.uint8)
-                return cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-            return None
-
-        img_cccd = load_img(cccd_file)
-        img_kyc = load_img(kyc_file)
-        img_addr = load_img(addr_file)
-
-        comp, mismatch, conf, attn, summ = process_kyc_case(img_cccd, img_kyc, img_addr)
-        
-        st.session_state["res_comp"] = comp
-        st.session_state["res_mismatch"] = mismatch
-        st.session_state["res_conf"] = conf
-        st.session_state["res_attn"] = attn
-        st.session_state["res_summ"] = summ
-        st.success("✅ Đã phân tích hồ sơ thành công! Hãy chuyển sang trang 'Báo cáo KYC & Cờ rủi ro' để xem chi tiết.")
-
-# --- TAB 2 & 3: BÁO CÁO KYC & CỜ RỦI RO ---
-elif "Báo cáo KYC" in menu_choice:
-    st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("📋 Báo cáo Đánh giá Rủi ro & Xác minh Hồ sơ")
-    
-    if "res_summ" in st.session_state:
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.markdown("### 🔍 Kiểm tra tính toàn vẹn & Đối chiếu")
-            st.info(st.session_state["res_comp"])
-            st.warning(st.session_state["res_mismatch"])
-        with col_b:
-            st.markdown("### 🎯 Độ tin cậy & Cờ rủi ro")
-            st.metric(label="Overall Confidence Score", value=st.session_state["res_conf"])
-            st.error(st.session_state["res_attn"])
-        
-        st.markdown("---")
-        st.markdown("### 📊 Tổng hợp KYC Summary")
-        st.markdown(st.session_state["res_summ"])
-    else:
-        st.info("ℹ️ Chưa có dữ liệu phân tích. Vui lòng vào trang **Trích xuất tài liệu (OCR)** để tải ảnh và bấm phân tích trước.")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# --- TAB 4: HỒ SƠ KHÁCH HÀNG ---
-elif "Hồ sơ khách hàng" in menu_choice:
-    st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("👥 Danh sách Hồ sơ Khách hàng")
-    if "res_summ" in st.session_state:
-        st.write("Trạng thái hồ sơ gần nhất: **Đã xử lý qua hệ thống Document AI**")
-    else:
-        st.caption("Chưa có hồ sơ nào được ghi nhận trong phiên làm việc.")
-    st.markdown('</div>', unsafe_allow_html=True)
+    if len(missing_documents
