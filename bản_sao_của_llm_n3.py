@@ -333,11 +333,20 @@ def find_label_hits(lines, specs, stops, is_image=False):
         kept.append(h)
     return kept
 
+# ĐÃ CẬP NHẬT: Cho phép quét lân cận dòng dưới nếu dòng ngang chứa nhãn bị trống
 def extract_value(lines, kept, hit, spec, is_image):
     ln = lines[hit.line]
     same = [h for h in kept if h.line == hit.line and h.start >= hit.end]
     end = same[0].start if same else len(ln.text)
-    return ln.text[hit.end:end].strip()
+    val = ln.text[hit.end:end].strip()
+    
+    if not val and is_image and hit.line + 1 < len(lines):
+        next_line_text = lines[hit.line + 1].text.strip()
+        is_another_label = any(h.line == hit.line + 1 for h in kept)
+        if not is_another_label and next_line_text:
+            val = next_line_text
+            
+    return val
 
 def extract_fields(lines, doc_type, is_image):
     specs, stops = FIELD_SPECS[doc_type], STOP_LABELS[doc_type]
@@ -575,14 +584,22 @@ elif "Báo cáo KYC" in menu_choice:
             else:
                 st.success("✅ **Hồ sơ hoàn chỉnh, không phát hiện tài liệu lỗi.**")
         with col_b:
-            st.markdown("### 🎯 Điểm tin cậy & Đề xuất")
+            st.markdown("### 🎯 Điểm tin cậy tổng hợp")
             st.metric(label="Overall Confidence Score", value="92%")
-            if has_invalid:
-                st.warning("🤖 **Đề xuất Workflow:** 👤 Manual review / Request more info")
-            else:
-                st.success("🤖 **Đề xuất Workflow:** ✅ Accept (Chấp nhận hồ sơ)")
+
+        st.markdown("---")
+        st.markdown("### 🤖 Quyết định đề xuất & Audit Log (Workflow Recommendation)")
+        
+        if has_invalid:
+            st.error("### 👤 Đề xuất xử lý: Manual Review / Request More Information\n*Hồ sơ có chứa tài liệu không hợp lệ hoặc định dạng OCR không khớp, cần nhân viên kiểm tra lại thủ công hoặc yêu cầu khách hàng bổ sung.*")
+        else:
+            st.success("### ✅ Đề xuất xử lý: ACCEPT (Chấp nhận hồ sơ)\n*Hồ sơ đạt tiêu chuẩn, đầy đủ thông tin định danh, không phát hiện rủi ro hoặc sai lệch.*")
+            
+        st.markdown("---")
+        st.markdown("### 📊 Tổng hợp Chi tiết KYC Summary")
+        st.dataframe(pd.DataFrame(st.session_state["pipeline_results"], columns=COLUMNS), use_container_width=True)
     else:
-        st.info("ℹ️ Chưa có dữ liệu thẩm định. Vui lòng hoàn thành các bước trước.")
+        st.info("ℹ️ Chưa có dữ liệu thẩm định. Vui lòng tải và phân tích tài liệu ở Bước 1 trước.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- TAB 4: HỒ SƠ KHÁCH HÀNG ---
