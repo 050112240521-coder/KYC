@@ -1625,7 +1625,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Khởi tạo trạng thái menu trong Session State
+# Khởi tạo danh sách menu và trạng thái chuyển trang an toàn
 menu_options = [
     "🎛️ Tổng quan Dashboard",
     "📄 Trích xuất tài liệu (OCR)",
@@ -1634,8 +1634,8 @@ menu_options = [
     "👥 Hồ sơ khách hàng"
 ]
 
-if "selected_menu" not in st.session_state:
-    st.session_state["selected_menu"] = menu_options[0]
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = menu_options[0]
 
 # ---------------- SIDEBAR BÊN TRÁI ----------------
 with st.sidebar:
@@ -1649,11 +1649,17 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
+    # Xác định chỉ số index hiện tại dựa trên session state
+    current_index = menu_options.index(st.session_state["current_page"]) if st.session_state["current_page"] in menu_options else 0
+
     menu_choice = st.radio(
         "QUY TRÌNH THẨM ĐỊNH KYC",
         options=menu_options,
-        key="selected_menu"
+        index=current_index
     )
+    
+    # Cập nhật lại trang hiện tại khi người dùng bấm chọn trên sidebar
+    st.session_state["current_page"] = menu_choice
 
     st.markdown("---")
     st.markdown("<div style='font-size: 11px; color: #cbd5e1; padding: 0 4px;'>Công cụ hỗ trợ quy trình thẩm định hồ sơ theo giải thuật IDP & Cross-check của dự án.</div>", unsafe_allow_html=True)
@@ -1696,11 +1702,11 @@ if "Tổng quan Dashboard" in menu_choice:
     col_act1, col_act2 = st.columns(2)
     with col_act1:
         if st.button("📤 Tải tài liệu lên để xử lý (Trang Trích xuất)", use_container_width=True):
-            st.session_state["selected_menu"] = "📄 Trích xuất tài liệu (OCR)"
+            st.session_state["current_page"] = "📄 Trích xuất tài liệu (OCR)"
             st.rerun()
     with col_act2:
         if st.button("📋 Nạp bộ hồ sơ thực nghiệm mẫu (HS1, HS2, HS3)", use_container_width=True):
-            st.session_state["selected_menu"] = "📄 Trích xuất tài liệu (OCR)"
+            st.session_state["current_page"] = "📄 Trích xuất tài liệu (OCR)"
             st.rerun()
             
     st.markdown("<br><br>", unsafe_allow_html=True)
