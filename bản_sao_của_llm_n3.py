@@ -1466,7 +1466,7 @@ import tempfile
 import os
 
 # ====================================================================
-# 1. CÁC HÀM XỬ LÝ LÕI (PIPELINE LOGIC TỪ CODE GỐC)
+# 1. CÁC HÀM XỬ LÝ LÕI (PIPELINE LOGIC)
 # ====================================================================
 
 def calculate_blur_score(image_np) -> float:
@@ -1552,14 +1552,14 @@ def process_kyc_case(files_dict):
         else:
             results[doc_name] = None
 
-    # 1. Completeness Check[cite: 2]
+    # Completeness Check
     is_complete = len(missing_documents) == 0
     if is_complete:
         completeness_text = "✅ **COMPLETE**\n\nĐã nhận đủ 3 loại tài liệu bắt buộc."
     else:
         completeness_text = "⚠️ **INCOMPLETE**\n\nTài liệu thiếu:\n" + "\n".join([f"- {doc}" for doc in missing_documents])
 
-    # 2. Extracted data & Cross-check[cite: 2]
+    # Extracted data & Cross-check
     extracted_documents = []
     for doc_name, data in results.items():
         if data is not None:
@@ -1593,7 +1593,7 @@ def process_kyc_case(files_dict):
     else:
         mismatch_text = "⚠️ **MISMATCH DETECTED**\n\n" + "\n".join([f"- {f}" for f in mismatch_list])
 
-    # 3. Confidence calculation[cite: 2]
+    # Confidence calculation
     confidence_values = []
     for doc_name, data in results.items():
         if data is not None:
@@ -1604,7 +1604,7 @@ def process_kyc_case(files_dict):
     overall_confidence = (sum(confidence_values) / len(confidence_values)) if len(confidence_values) > 0 else 0
     confidence_text = f"{overall_confidence * 100:.0f}%"
 
-    # 4. Attention Flags[cite: 2]
+    # Attention Flags
     attention_flags = []
     if not is_complete:
         attention_flags.append(f"📄 Thiếu tài liệu: {', '.join(missing_documents)}")
@@ -1617,7 +1617,7 @@ def process_kyc_case(files_dict):
 
     attention_text = "\n\n".join([f"### {flag}" for flag in attention_flags])
 
-    # 5. Workflow Recommendation[cite: 2]
+    # Workflow Recommendation
     if not is_complete:
         workflow_rec = "📩 Request more information"
     elif has_mismatch or overall_confidence < 0.70:
@@ -1637,7 +1637,7 @@ def process_kyc_case(files_dict):
 ### 🤖 Đề xuất xử lý (Workflow): **{workflow_rec}**
 """
 
-    return completeness_text, mismatch_text, confidence_text, attention_text, summary, results
+    return completeness_text, mismatch_text, confidence_text, attention_text, summary
 
 
 # ====================================================================
@@ -1762,9 +1762,9 @@ elif "Trích xuất tài liệu" in menu_choice:
     st.markdown('<div class="content-card">', unsafe_allow_html=True)
     st.subheader("📥 Tải lên 3 tài liệu định danh (Hỗ trợ Ảnh, Word .docx, PDF)")
     c1, c2, c3 = st.columns(3)
-    with c1: cccd_file = st.file_uploader("📄 CCCD / Passport", type=["jpg", "png", "jpeg", "pdf", "docx"], key="up_cccd")
-    with c2: kyc_file = st.file_uploader("📝 KYC Form", type=["jpg", "png", "jpeg", "pdf", "docx"], key="up_kyc")
-    with c3: addr_file = st.file_uploader("🏠 Proof of Address", type=["jpg", "png", "jpeg", "pdf", "docx"], key="up_addr")
+    with c1: cccd_file = st.file_uploader("📄 CCCD / Passport", type=["jpg", "png", "jpeg", "pdf", "docx"])
+    with c2: kyc_file = st.file_uploader("📝 KYC Form", type=["jpg", "png", "jpeg", "pdf", "docx"])
+    with c3: addr_file = st.file_uploader("🏠 Proof of Address", type=["jpg", "png", "jpeg", "pdf", "docx"])
     
     run_analyze = st.button("🔍 PHÂN TÍCH TOÀN BỘ HỒ SƠ KYC", use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1783,55 +1783,38 @@ elif "Trích xuất tài liệu" in menu_choice:
         st.session_state["res_conf"] = res_tuple[2]
         st.session_state["res_attn"] = res_tuple[3]
         st.session_state["res_summ"] = res_tuple[4]
-        st.session_state["res_details"] = res_tuple[5]
         
-        st.success("✅ Đã trích xuất thông tin thành công! Hãy chuyển sang bước 'Đối chiếu chéo hồ sơ' hoặc 'Báo cáo KYC'.")
+        st.success("✅ Đã phân tích hồ sơ thành công! Hãy chuyển sang trang 'Báo cáo KYC & Cờ rủi ro' để xem chi tiết.")
 
-    if "res_details" in st.session_state:
-        st.markdown('<div class="content-card">', unsafe_allow_html=True)
-        st.subheader("📄 Kết quả Trích xuất Chi tiết (Extracted Data)")
-        st.json(st.session_state["res_details"])
-        st.markdown('</div>', unsafe_allow_html=True)
-
-# --- TAB 2: ĐỐI CHIẾU CHÉO HỒ SƠ ---
-elif "Đối chiếu chéo" in menu_choice:
-    st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("🔀 Kết quả Đối chiếu Chéo giữa các tài liệu")
-    if "res_mismatch" in st.session_state:
-        st.info(st.session_state["res_mismatch"])
-    else:
-        st.warning("⚠️ Chưa có dữ liệu hồ sơ. Vui lòng thực hiện tải lên và bấm phân tích ở trang **Trích xuất tài liệu** trước.")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# --- TAB 3: BÁO CÁO KYC & CỜ RỦI RO ---
+# --- TAB 2 & 3: BÁO CÁO KYC & CỜ RỦI RO ---
 elif "Báo cáo KYC" in menu_choice:
     st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("🛡️ Báo cáo Hoàn chỉnh & Thẩm định Rủi ro")
+    st.subheader("📋 Báo cáo Đánh giá Rủi ro & Xác minh Hồ sơ")
     
     if "res_summ" in st.session_state:
         col_a, col_b = st.columns(2)
         with col_a:
-            st.markdown("### 🔍 Kiểm tra tính toàn vẹn")
+            st.markdown("### 🔍 Kiểm tra tính toàn vẹn & Đối chiếu")
             st.info(st.session_state["res_comp"])
+            st.warning(st.session_state["res_mismatch"])
         with col_b:
             st.markdown("### 🎯 Độ tin cậy & Cờ rủi ro")
             st.metric(label="Overall Confidence Score", value=st.session_state["res_conf"])
             st.error(st.session_state["res_attn"])
         
         st.markdown("---")
-        st.markdown("### 📊 Tổng hợp KYC Summary Hoàn chỉnh")
+        st.markdown("### 📊 Tổng hợp KYC Summary")
         st.markdown(st.session_state["res_summ"])
     else:
-        st.info("ℹ️ Chưa có dữ liệu thẩm định. Vui lòng hoàn thành các bước trước đó.")
+        st.info("ℹ️ Chưa có dữ liệu phân tích. Vui lòng vào trang **Trích xuất tài liệu (OCR)** để tải tệp và bấm phân tích trước.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- TAB 4: HỒ SƠ KHÁCH HÀNG ---
 elif "Hồ sơ khách hàng" in menu_choice:
     st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    st.subheader("👥 Danh sách Hồ sơ Khách hàng đã Xử lý")
+    st.subheader("👥 Danh sách Hồ sơ Khách hàng")
     if "res_summ" in st.session_state:
-        st.success("🟢 Trạng thái phiên hiện tại: Đã hoàn tất quy trình thẩm định 1 khách hàng.")
-        st.json(st.session_state.get("res_details", {}))
+        st.write("Trạng thái hồ sơ gần nhất: **Đã xử lý thành công qua hệ thống Document AI**")
     else:
-        st.caption("Chưa có hồ sơ khách hàng nào được ghi nhận trong hệ thống.")
+        st.caption("Chưa có hồ sơ nào được ghi nhận trong phiên làm việc.")
     st.markdown('</div>', unsafe_allow_html=True)
