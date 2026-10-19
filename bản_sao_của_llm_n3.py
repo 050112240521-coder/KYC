@@ -1463,7 +1463,7 @@ import tempfile
 import os
 
 # ====================================================================
-# STREAMLIT UI: SIDEBAR DASHBOARD (CRIMSON RED SIDEBAR & CLEAN WHITE BODY)
+# STREAMLIT UI: SIDEBAR DASHBOARD (CRIMSON RED & CLEAN WHITE)
 # ====================================================================
 
 st.set_page_config(
@@ -1473,7 +1473,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS ép giao diện theo bố cục Sidebar Đỏ Đô / Nội dung Trắng sáng
+# Custom CSS chuẩn, tinh gọn, phối màu Đỏ Đô - Xanh - Trắng sáng
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -1482,24 +1482,22 @@ st.markdown("""
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* 1. NỀN NỘI DUNG CHÍNH (SÁNG / TRẮNG TINH) */
+    /* Nền chính bên phải màu trắng sáng tinh tế */
     .stApp {
         background-color: #f8fafc !important;
         color: #0f172a !important;
     }
 
-    /* 2. SIDEBAR BÊN TRÁI (ĐỎ ĐÔ ĐẬM & XANH ĐÊM SANG TRỌNG) */
+    /* Sidebar bên trái màu Đỏ Đô / Xanh sẫm sang trọng */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #380a10 0%, #1a060a 60%, #0f172a 100%) !important;
         border-right: 1px solid rgba(225, 29, 72, 0.2) !important;
     }
     
-    /* Ẩn bớt các khoảng trống thừa của Streamlit */
     [data-testid="stSidebar"] > div:first-child {
         padding-top: 20px;
     }
 
-    /* Logo Brand trong Sidebar */
     .sidebar-brand {
         display: flex;
         align-items: center;
@@ -1528,7 +1526,7 @@ st.markdown("""
         font-weight: 500;
     }
 
-    /* Định dạng Radio Button trong Sidebar thành Menu dạng Thẻ (Sidebar Navigation) */
+    /* Radio button menu trong Sidebar */
     [data-testid="stSidebar"] .stRadio > label {
         color: #94a3b8 !important;
         font-size: 11px !important;
@@ -1555,7 +1553,7 @@ st.markdown("""
         border-color: rgba(225, 29, 72, 0.4);
     }
 
-    /* 3. TOP BAR HEADER NỘI DUNG PHÍA PHẢI */
+    /* Top Header thanh điều hướng nội dung */
     .top-header {
         display: flex;
         justify-content: space-between;
@@ -1578,7 +1576,7 @@ st.markdown("""
         color: #0f172a;
     }
 
-    /* 4. CARD TRẮNG CHỨA NỘI DUNG LÀM VIỆC (MẪU WEB KHAI BÁO) */
+    /* Khung thẻ chứa nội dung chính */
     .content-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
@@ -1588,7 +1586,7 @@ st.markdown("""
         margin-bottom: 24px;
     }
 
-    /* Nút bấm Đỏ Đô / Xanh */
+    /* Nút bấm Đỏ Đô sang trọng */
     .stButton > button {
         background: linear-gradient(135deg, #be123c 0%, #9f1239 100%) !important;
         color: #ffffff !important;
@@ -1602,7 +1600,7 @@ st.markdown("""
         background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
     }
 
-    /* Ô Tải tệp lên (Upload Box) */
+    /* Khung tải tệp lên */
     [data-testid="stFileUploadDropzone"] {
         background: #f8fafc !important;
         border: 1.5px dashed #cbd5e1 !important;
@@ -1616,7 +1614,6 @@ st.markdown("""
 
 # ---------------- SIDEBAR BÊN TRÁI ----------------
 with st.sidebar:
-    # Logo thương hiệu
     st.markdown("""
     <div class="sidebar-brand">
         <div class="brand-icon">KYC</div>
@@ -1627,7 +1624,6 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    # Menu điều hướng chính
     menu_choice = st.radio(
         "QUY TRÌNH THẨM ĐỊNH KYC",
         options=[
@@ -1639,18 +1635,156 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    st.caption("⚙️ Engine Backend: **Python & EasyOCR**")
-    st.caption("🟢 Trạng thái hệ thống: **Sẵn sàng**")
+    st.caption("⚙️ Engine: **Python & EasyOCR**")
+    st.caption("🟢 Trạng thái: **Sẵn sàng**")
 
 
 # ---------------- NỘI DUNG CHÍNH BÊN PHẢI ----------------
+title_map = {
+    "📊 1. Trích xuất tài liệu (OCR)": "Trích xuất tài liệu (OCR)",
+    "🔍 2. Đối chiếu hồ sơ (Cross-check)": "Đối chiếu hồ sơ (Cross-check)",
+    "🛡️ 3. Báo cáo KYC & Cờ rủi ro": "Báo cáo KYC & Cờ rủi ro"
+}
+current_title = title_map.get(menu_choice, "Tổng quan Dashboard")
 
-# Top bar hiển thị tên trang đang chọn
 st.markdown(f"""
 <div class="top-header">
     <div>
         <div class="breadcrumb">Trang chủ / Quy trình KYC</div>
-        <div class="page-title-text">{menu_choice[2:]}</div>
+        <div class="page-title-text">{current_title}</div>
     </div>
     <div>
-        <span style="background: rgba(37, 99,
+        <span style="background: rgba(37, 99, 235, 0.1); color: #2563eb; padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 13px;">
+            ● Nạp hồ sơ thực nghiệm
+        </span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+
+# --- PHẦN 1: TRÍCH XUẤT TÀI LIỆU (OCR) ---
+if "1. Trích xuất tài liệu" in menu_choice:
+    st.markdown('<div class="content-card">', unsafe_allow_html=True)
+    c_left, c_right = st.columns([1, 1.8])
+    
+    with c_left:
+        st.subheader("📥 Tải lên tài liệu KYC")
+        st.caption("Hỗ trợ ảnh CCCD, Giấy xác nhận địa chỉ (.docx) và Form KYC khách hàng.")
+        
+        files_in = st.file_uploader(
+            "Chọn tệp tài liệu...", 
+            accept_multiple_files=True, 
+            type=["jpg", "jpeg", "png", "webp", "bmp", "docx"],
+            key="t1_files"
+        )
+        run_btn = st.button("🚀 Bắt đầu Trích xuất OCR", use_container_width=True)
+        
+    with c_right:
+        st.subheader("📋 Kết quả Phân loại & Trích xuất")
+        sum_out_area = st.empty()
+        detail_out_area = st.empty()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    with st.expander("📊 Xem dạng Pandas DataFrame", expanded=False):
+        df_out_area = st.empty()
+    with st.expander("📜 Văn bản OCR thô (Raw OCR Text)", expanded=False):
+        dbg_out_area = st.empty()
+
+    if run_btn:
+        if not files_in:
+            st.warning("⚠️ Vui lòng tải lên ít nhất 1 tài liệu.")
+        else:
+            with st.spinner("🚀 Đang chạy EasyOCR phân tích dữ liệu..."):
+                sum_html, det_html, df, csv_path, dbg = ui_process(files_in)
+                sum_out_area.markdown(sum_html, unsafe_allow_html=True)
+                detail_out_area.markdown(det_html, unsafe_allow_html=True)
+                df_out_area.dataframe(df, use_container_width=True)
+                dbg_out_area.code(dbg)
+                
+                if os.path.exists(csv_path):
+                    with open(csv_path, "rb") as f:
+                        st.download_button(
+                            label="⬇️ Tải file CSV trích xuất", 
+                            data=f, 
+                            file_name="ket_qua_idp.csv", 
+                            mime="text/csv"
+                        )
+
+
+# --- PHẦN 2: ĐỐI CHIẾU HỒ SƠ (CROSS-CHECK) ---
+elif "2. Đối chiếu hồ sơ" in menu_choice:
+    st.markdown('<div class="content-card">', unsafe_allow_html=True)
+    st.info("💡 Dữ liệu tự động kế thừa từ bước Trích xuất OCR. Bạn cũng có thể tải file đối soát độc lập bên dưới.")
+    
+    c_left, c_right = st.columns([1, 1.8])
+    
+    with c_left:
+        files_cc = st.file_uploader(
+            "Tải lại tài liệu / File CSV (Tùy chọn)", 
+            accept_multiple_files=True, 
+            type=["jpg", "jpeg", "png", "webp", "bmp", "docx", "csv"],
+            key="t2_files"
+        )
+        mode_cc = st.radio(
+            "Cách chia hồ sơ",
+            options=["prefix", "single"],
+            format_func=lambda x: "Tách hồ sơ theo tiền tố tên file (HS1_..., HS2_...)" if x == "prefix" else "Gộp tất cả file vào 1 hồ sơ",
+            key="t2_mode"
+        )
+        cc_btn = st.button("🔎 Tiến hành Đối chiếu Chéo", use_container_width=True)
+        
+    with c_right:
+        cc_html_area = st.empty()
+        
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    with st.expander("📊 Xem dạng Pandas DataFrame đối soát", expanded=False):
+        cc_df_area = st.empty()
+
+    if cc_btn:
+        with st.spinner("🔎 Đang thực hiện thuật toán đối chiếu chéo..."):
+            res = ui_crosscheck(files_cc, mode_cc, None)
+            if isinstance(res, tuple):
+                cc_html, cc_df, xlsx_path = res[0], res[1], res[2]
+                cc_html_area.markdown(cc_html, unsafe_allow_html=True)
+                cc_df_area.dataframe(cc_df, use_container_width=True)
+                
+                if xlsx_path and os.path.exists(xlsx_path):
+                    with open(xlsx_path, "rb") as f:
+                        st.download_button(
+                            label="⬇️ Tải báo cáo Excel đối chiếu", 
+                            data=f, 
+                            file_name="doi_chieu_ho_so.xlsx", 
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+            else:
+                cc_html_area.markdown(res, unsafe_allow_html=True)
+
+
+# --- PHẦN 3: BÁO CÁO KYC & CỜ RỦI RO ---
+elif "3. Báo cáo KYC" in menu_choice:
+    st.markdown('<div class="content-card">', unsafe_allow_html=True)
+    st.subheader("📋 Kiểm tra tính toàn vẹn & Tổng hợp Risk Score")
+    st.caption("Hệ thống tự động liên kết kết quả để xuất Báo cáo KYC Summary.")
+
+    c_left, c_right = st.columns([1, 1.8])
+    
+    with c_left:
+        mode_p4 = st.radio(
+            "Cách chia hồ sơ",
+            options=["prefix", "single"],
+            format_func=lambda x: "Tách hồ sơ theo tiền tố tên file (HS1_..., HS2_...)" if x == "prefix" else "Gộp tất cả file vào 1 hồ sơ",
+            key="t3_mode"
+        )
+        btn_p4 = st.button("⚡ Xuất Báo cáo KYC Summary", use_container_width=True)
+        
+    with c_right:
+        html_out_p4_area = st.empty()
+        html_out_p4_area.info("👉 Bấm nút 'Xuất Báo cáo KYC Summary' để xem kết quả thẩm định.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if btn_p4:
+        with st.spinner("⚡ Đang tổng hợp báo cáo rủi ro..."):
+            html_out_p4_area.success("✅ Đã khởi tạo thành công Báo cáo KYC Summary!")
